@@ -197,6 +197,34 @@ const styles = `
   .post-row-left { flex: 1; }
   .img-utility-row { display: flex; gap: 8px; margin-top: 0.5rem; }
   .img-url-text { font-family: var(--font-mono); font-size: 10px; color: var(--muted); background: var(--bg3); padding: 4px 8px; border-radius: 3px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Project Display Styles */
+  .project-gallery-slider { 
+    display: flex; gap: 12px; margin-top: 1.5rem; overflow-x: auto; 
+    scroll-snap-type: x mandatory; padding-bottom: 8px; 
+    scrollbar-width: thin; scrollbar-color: var(--accent) transparent;
+  }
+  .project-gallery-slider::-webkit-scrollbar { height: 4px; }
+  .project-gallery-slider::-webkit-scrollbar-track { background: transparent; }
+  .project-gallery-slider::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+  
+  .project-slider-item { 
+    flex: 0 0 calc(100% - 24px); scroll-snap-align: center; 
+    aspect-ratio: 16/10; border-radius: 6px; overflow: hidden; 
+    border: 1px solid var(--border); transition: border-color 0.3s;
+  }
+  .project-slider-item img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
+  .project-slider-item:hover { border-color: var(--accent); }
+  
+  @media (min-width: 600px) {
+    .project-slider-item { flex: 0 0 85%; }
+  }
+
+  /* Project Editor Styles */
+  .project-editor-images { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+  .project-img-slot { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; }
+  .project-slot-preview { width: 100%; aspect-ratio: 16/10; object-fit: cover; border-radius: 4px; background: var(--bg); }
+  .project-slot-empty { width: 100%; aspect-ratio: 16/10; border-radius: 4px; background: var(--bg); display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 10px; color: var(--muted); border: 1px dashed var(--border); }
 `
 ;
 
@@ -368,6 +396,15 @@ function Portfolio() {
             </div>
             <p className="project-desc">{p.description}</p>
             <div className="tech-tags">{(p.tags || []).map(t => <span key={t} className="tech-tag">{t}</span>)}</div>
+            {p.display_urls && p.display_urls.length > 0 && (
+              <div className="project-gallery-slider">
+                {p.display_urls.map((url, idx) => (
+                  <div key={idx} className="project-slider-item">
+                    <img src={url} alt={`${p.name} display ${idx + 1}`} onClick={() => window.open(url, "_blank")} />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ))}
         {projects.length === 0 && <p style={{ color: "var(--muted)", fontFamily: "var(--font-mono)", fontSize: "13px" }}>No projects yet.</p>}
@@ -615,12 +652,13 @@ function SettingsPanel({ token, categories, onCategoriesChange }) {
 }
 
 // ── Projects Admin ──────────────────────────────────────────────────────────────────────
-const EMPTY_PROJECT = { name: "", description: "", tags: "", github_url: "", live_url: "", featured: true, sort_order: 0 };
+const EMPTY_PROJECT = { name: "", description: "", tags: "", github_url: "", live_url: "", featured: true, sort_order: 0, display_urls: [] };
 
-function ProjectsAdmin({ token }) {
+function ProjectsAdmin({ token, handleUpload }) {
   const [projects, setProjects] = useState([]);
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
   const h = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
@@ -659,12 +697,56 @@ function ProjectsAdmin({ token }) {
 
   function f(key, val) { setEditing(prev => ({ ...prev, [key]: val })); }
 
+  async function onFileChange(file, index) {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await handleUpload(file);
+      if (url) {
+        const nextUrls = [...(editing.display_urls || [])];
+        nextUrls[index] = url;
+        f("display_urls", nextUrls);
+      }
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function removeImg(index) {
+    const nextUrls = [...(editing.display_urls || [])];
+    nextUrls.splice(index, 1);
+    f("display_urls", nextUrls.filter(Boolean));
+  }
+
   if (editing !== null) return (
     <div className="post-editor">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
         <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 300 }}>{editing.id ? "Edit Project" : "New Project"}</h3>
         <button className="btn btn-outline btn-sm" onClick={() => setEditing(null)}>← Back</button>
       </div>
+      
+      <div className="section-label" style={{ marginTop: "0" }}>Display Images (Max 5)</div>
+      <div className="project-editor-images">
+        {[0, 1, 2, 3, 4].map(i => (
+          <div key={i} className="project-img-slot">
+            {editing.display_urls?.[i] ? (
+              <img src={editing.display_urls[i]} className="project-slot-preview" alt="" />
+            ) : (
+              <div className="project-slot-empty">Slot {i + 1}</div>
+            )}
+            <div style={{ display: "flex", gap: "4px", width: "100%" }}>
+              <input type="file" id={`proj-img-${i}`} className="hidden-input" accept="image/*" onChange={e => onFileChange(e.target.files[0], i)} />
+              <button className="btn btn-outline btn-sm" style={{ flex: 1, fontSize: "10px", padding: "4px" }} onClick={() => document.getElementById(`proj-img-${i}`).click()}>
+                {editing.display_urls?.[i] ? "Change" : "Upload"}
+              </button>
+              {editing.display_urls?.[i] && (
+                <button className="btn btn-danger btn-sm" style={{ padding: "4px 8px" }} onClick={() => removeImg(i)}>×</button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div className="editor-grid">
         <div><label className="editor-label">Name</label><input className="editor-input" value={editing.name} onChange={e => f("name", e.target.value)} placeholder="Project name" /></div>
         <div><label className="editor-label">Sort Order</label><input className="editor-input" type="number" value={editing.sort_order} onChange={e => f("sort_order", +e.target.value)} /></div>
@@ -677,10 +759,11 @@ function ProjectsAdmin({ token }) {
         <div className="editor-footer-left">
           <label className="toggle-label"><input type="checkbox" checked={editing.featured} onChange={e => f("featured", e.target.checked)} /> Featured on Work page</label>
           {msg && <span className="success-msg">{msg}</span>}
+          {uploading && <span className="success-msg" style={{ color: "var(--accent)" }}>Uploading...</span>}
         </div>
         <div className="editor-footer-right">
           <button className="btn btn-outline btn-sm" onClick={() => setEditing(null)}>Cancel</button>
-          <button className="btn btn-primary btn-sm" onClick={save} disabled={saving}>{saving ? "Saving…" : "Save project"}</button>
+          <button className="btn btn-primary btn-sm" onClick={save} disabled={saving || uploading}>{saving ? "Saving…" : "Save project"}</button>
         </div>
       </div>
     </div>
@@ -936,7 +1019,7 @@ function AdminPanel({ token, onLogout, onPostsChange, categories, onCategoriesCh
             </tbody>
           </table>
         )}
-        {tab === "projects" && <ProjectsAdmin token={token} />}
+        {tab === "projects" && <ProjectsAdmin token={token} handleUpload={handleUpload} />}
         {tab === "settings" && <SettingsPanel token={token} categories={categories} onCategoriesChange={onCategoriesChange} />}
       </div>
     </div>

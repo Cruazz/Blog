@@ -80,10 +80,21 @@ async function initDB() {
       tags        TEXT[],
       github_url  TEXT,
       live_url    TEXT,
+      display_urls TEXT[],
       featured    BOOLEAN NOT NULL DEFAULT TRUE,
       sort_order  INT NOT NULL DEFAULT 0,
       created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
+  `);
+
+  // Migration: Add display_urls to projects if it doesn't exist
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='display_urls') THEN
+        ALTER TABLE projects ADD COLUMN display_urls TEXT[];
+      END IF;
+    END $$;
   `);
 
   // Seed sample posts if the table is empty
@@ -384,25 +395,25 @@ app.get("/api/admin/projects", auth, async (req, res) => {
 });
 
 app.post("/api/admin/projects", auth, async (req, res) => {
-  const { name, description, tags, github_url, live_url, featured, sort_order } = req.body;
+  const { name, description, tags, github_url, live_url, featured, sort_order, display_urls } = req.body;
   if (!name) return res.status(400).json({ error: "Project name required" });
   try {
     const { rows } = await pool.query(
-      `INSERT INTO projects (name, description, tags, github_url, live_url, featured, sort_order)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [name, description || "", tags || [], github_url || null, live_url || null, featured !== false, sort_order || 0]
+      `INSERT INTO projects (name, description, tags, github_url, live_url, featured, sort_order, display_urls)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [name, description || "", tags || [], github_url || null, live_url || null, featured !== false, sort_order || 0, display_urls || []]
     );
     res.status(201).json(rows[0]);
   } catch (err) { console.error(err); res.status(500).json({ error: "Server error" }); }
 });
 
 app.put("/api/admin/projects/:id", auth, async (req, res) => {
-  const { name, description, tags, github_url, live_url, featured, sort_order } = req.body;
+  const { name, description, tags, github_url, live_url, featured, sort_order, display_urls } = req.body;
   try {
     const { rows } = await pool.query(
       `UPDATE projects SET name=$1, description=$2, tags=$3, github_url=$4,
-       live_url=$5, featured=$6, sort_order=$7 WHERE id=$8 RETURNING *`,
-      [name, description || "", tags || [], github_url || null, live_url || null, featured !== false, sort_order || 0, req.params.id]
+       live_url=$5, featured=$6, sort_order=$7, display_urls=$8 WHERE id=$9 RETURNING *`,
+      [name, description || "", tags || [], github_url || null, live_url || null, featured !== false, sort_order || 0, display_urls || [], req.params.id]
     );
     if (!rows.length) return res.status(404).json({ error: "Not found" });
     res.json(rows[0]);
