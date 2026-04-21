@@ -448,7 +448,7 @@ function Contact() {
         <div className="social-row">
           <a href="https://github.com/cruazz" className="social-link" target="_blank" rel="noreferrer">GitHub ↗</a>
           <a href="https://instagram.com/hezmtch" className="social-link" target="_blank" rel="noreferrer">Instagram ↗</a>
-          <a href="https://discord.com" className="social-link" target="_blank" rel="noreferrer" title="Discord: ccruaz">Discord ↗</a>
+          <a href="https://discord.com" className="social-link" target="_blank" rel="noreferrer">Discord: ccruaz ↗</a>
           <a href="mailto:hezekiah.mitchellt@gmail.com" className="social-link">Email ↗</a>
         </div>
       </div>
