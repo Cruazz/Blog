@@ -192,6 +192,7 @@ const styles = `
   .blog-card { display: flex; gap: 20px; align-items: flex-start; }
   .blog-card-content { flex: 1; }
   .post-hero-image { width: 100%; max-height: 400px; object-fit: cover; border-radius: 8px; margin-bottom: 2rem; border: 1px solid var(--border); }
+  .post-body img { display: block; max-width: 100%; height: auto; border-radius: 6px; margin: 1.5rem auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
   .post-row { display: flex; align-items: center; gap: 1rem; }
   .post-row-left { flex: 1; }
   .img-utility-row { display: flex; gap: 8px; margin-top: 0.5rem; }
