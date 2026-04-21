@@ -172,14 +172,45 @@ const styles = `
   .editor-footer-left { display: flex; align-items: center; gap: 10px; }
   .toggle-label { font-family: var(--font-mono); font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 8px; cursor: pointer; }
   .editor-footer-right { display: flex; gap: 10px; }
+  .contact-channels { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-top: 2rem; }
+  .contact-tile { background: var(--bg2); border: 1px solid var(--border); padding: 1.2rem; border-radius: 6px; text-decoration: none; display: flex; align-items: center; gap: 1rem; transition: all 0.2s ease; cursor: pointer; position: relative; }
+  .contact-tile:hover { border-color: var(--accent); transform: translateY(-2px); background: var(--bg3); }
+  .contact-icon-box { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: rgba(201,168,108,0.08); border-radius: 6px; color: var(--accent); flex-shrink: 0; }
+  .contact-tile-text { display: flex; flex-direction: column; gap: 2px; overflow: hidden; flex: 1; }
+  .contact-label { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+  .contact-value { font-size: 14px; font-weight: 500; color: var(--text); white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+  .contact-arrow { color: var(--muted); opacity: 0.4; transition: all 0.2s; }
+  .contact-tile:hover .contact-arrow { color: var(--accent); opacity: 1; transform: translate(2px, -2px); }
+
   .success-msg { color: var(--accent2); font-family: var(--font-mono); font-size: 12px; }
-`;
+`
+;
 
 
 
 function slugify(str) {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
+
+const Icons = {
+  Github: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.28 1.15-.28 2.35 0 3.5-.73 1.02-1.08 2.25-1 3.5 0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" /><path d="M9 18c-4.51 2-5-2-7-2" /></svg>
+  ),
+  Instagram: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" x2="17.51" y1="6.5" y2="6.5" /></svg>
+  ),
+  Discord: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.618-1.25.077.077 0 0 0-.079-.037A19.73 19.73 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.1 18.099a.082.082 0 0 0 .031.058 20.2 20.2 0 0 0 5.922 2.766.075.075 0 0 0 .08-.037c.469-.824.896-1.697 1.264-2.585a.075.075 0 0 0-.04-.105 13.25 13.25 0 0 1-1.905-.91.077.077 0 0 1-.007-.127c.126-.094.252-.192.375-.292a.077.077 0 0 1 .082-.01c3.41 1.564 7.103 1.564 10.45 0a.077.077 0 0 1 .082.01c.123.1.25.198.375.292a.077.077 0 0 1-.007.127 13.25 13.25 0 0 1-1.905.91.075.075 0 0 0-.04.105c.37.888.796 1.761 1.264 2.585a.075.075 0 0 0 .08.037 20.2 20.2 0 0 0 5.922-2.766.082.082 0 0 0 .031-.058c.484-5.068-.372-9.61-3.57-14.286a.07.07 0 0 0-.032-.027ZM8.02 15.332c-1.18 0-2.156-1.085-2.156-2.419 0-1.333.955-2.418 2.156-2.418 1.21 0 2.176 1.095 2.156 2.418 0 1.334-.955 2.419-2.156 2.419Zm7.975 0c-1.18 0-2.156-1.085-2.156-2.419 0-1.333.955-2.418 2.156-2.418 1.21 0 2.176 1.095 2.156 2.418 0 1.334-.955 2.419-2.156 2.419Z"/>
+    </svg>
+  ),
+  Email: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
+  ),
+  Arrow: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+  )
+};
 function formatDate(iso) {
   if (!iso) return "";
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -445,11 +476,40 @@ function Contact() {
           </button>
         </div>
 
-        <div className="social-row">
-          <a href="https://github.com/cruazz" className="social-link" target="_blank" rel="noreferrer">GitHub ↗</a>
-          <a href="https://instagram.com/hezmtch" className="social-link" target="_blank" rel="noreferrer">Instagram ↗</a>
-          <a href="https://discord.com" className="social-link" target="_blank" rel="noreferrer">Discord: ccruaz ↗</a>
-          <a href="mailto:hezekiah.mitchellt@gmail.com" className="social-link">Email ↗</a>
+        <div className="section-label" style={{ marginTop: "3rem", marginBottom: "0.8rem" }}>Direct contact</div>
+        <div className="contact-channels">
+          <a href="https://github.com/cruazz" className="contact-tile" target="_blank" rel="noreferrer">
+            <div className="contact-icon-box"><Icons.Github /></div>
+            <div className="contact-tile-text">
+              <span className="contact-label">GitHub</span>
+              <span className="contact-value">cruazz</span>
+            </div>
+            <div className="contact-arrow"><Icons.Arrow /></div>
+          </a>
+          <a href="https://instagram.com/hezmtch" className="contact-tile" target="_blank" rel="noreferrer">
+            <div className="contact-icon-box"><Icons.Instagram /></div>
+            <div className="contact-tile-text">
+              <span className="contact-label">Instagram</span>
+              <span className="contact-value">hezmtch</span>
+            </div>
+            <div className="contact-arrow"><Icons.Arrow /></div>
+          </a>
+          <a href="https://discord.com/users/792563548990996480" className="contact-tile" target="_blank" rel="noreferrer">
+            <div className="contact-icon-box"><Icons.Discord /></div>
+            <div className="contact-tile-text">
+              <span className="contact-label">Discord</span>
+              <span className="contact-value">ccruaz</span>
+            </div>
+            <div className="contact-arrow"><Icons.Arrow /></div>
+          </a>
+          <a href="mailto:hezekiah.mitchellt@gmail.com" className="contact-tile">
+            <div className="contact-icon-box"><Icons.Email /></div>
+            <div className="contact-tile-text">
+              <span className="contact-label">Mail</span>
+              <span className="contact-value">hezekiah.mitchellt@gmail.com</span>
+            </div>
+            <div className="contact-arrow"><Icons.Arrow /></div>
+          </a>
         </div>
       </div>
     </div>
