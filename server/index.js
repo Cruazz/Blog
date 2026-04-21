@@ -13,7 +13,9 @@ const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret_change_me";
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
 const ADMIN_PASSWORD_RAW = process.env.ADMIN_PASSWORD || "admin123";
 
-app.use(cors());
+app.use(cors({
+  origin: ["http://localhost:5173", /\.vercel\.app$/]
+}));
 app.use(express.json());
 
 // ── DB Init ───────────────────────────────────────────────────────────────────
@@ -137,6 +139,8 @@ function auth(req, res, next) {
 }
 
 // ── Public routes ─────────────────────────────────────────────────────────────
+app.get("/api/health", (req, res) => res.json({ status: "ok" }));
+
 app.get("/api/posts", async (req, res) => {
   try {
     const { rows } = await pool.query(
