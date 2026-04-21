@@ -14,7 +14,7 @@ const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
 const ADMIN_PASSWORD_RAW = process.env.ADMIN_PASSWORD || "admin123";
 
 app.use(cors({
-  origin: ["http://localhost:5173", /\.vercel\.app$/]
+  origin: ["http://localhost:5173", /\.vercel\.app$/, "https://cruaz.my.id", "https://www.cruaz.my.id"]
 }));
 app.use(express.json());
 
