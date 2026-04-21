@@ -127,23 +127,29 @@ async function initDB() {
     console.log("✓ Seeded 4 sample posts");
   }
 
-  // Seed default categories
-  await pool.query(`
-    INSERT INTO categories (name, slug) VALUES
-      ('Development', 'development'),
-      ('Data', 'data'),
-      ('Tutorial', 'tutorial')
-    ON CONFLICT DO NOTHING
-  `);
+  // Seed default categories if empty
+  const { rows: catRows } = await pool.query("SELECT COUNT(*) FROM categories");
+  if (parseInt(catRows[0].count) === 0) {
+    await pool.query(`
+      INSERT INTO categories (name, slug) VALUES
+        ('Development', 'development'),
+        ('Data', 'data'),
+        ('Tutorial', 'tutorial')
+    `);
+    console.log("✓ Seeded default categories");
+  }
 
-  // Seed default skills
-  await pool.query(`
-    INSERT INTO skills (name, sort_order) VALUES
-      ('React', 1), ('PostgreSQL', 2), ('Excel', 3), ('Node.js', 4),
-      ('Express', 5), ('JavaScript', 6), ('SQL', 7), ('Python', 8),
-      ('Vite', 9), ('Chart.js', 10), ('REST APIs', 11), ('Git', 12)
-    ON CONFLICT (name) DO NOTHING
-  `);
+  // Seed default skills if empty
+  const { rows: skillRows } = await pool.query("SELECT COUNT(*) FROM skills");
+  if (parseInt(skillRows[0].count) === 0) {
+    await pool.query(`
+      INSERT INTO skills (name, sort_order) VALUES
+        ('React', 1), ('PostgreSQL', 2), ('Excel', 3), ('Node.js', 4),
+        ('Express', 5), ('JavaScript', 6), ('SQL', 7), ('Python', 8),
+        ('Vite', 9), ('Chart.js', 10), ('REST APIs', 11), ('Git', 12)
+    `);
+    console.log("✓ Seeded default skills");
+  }
 
   console.log("✓ Database ready");
 }
