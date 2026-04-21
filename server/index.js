@@ -3,6 +3,9 @@ import cors from "cors";
 import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import multer from "multer";
+import { v2 as cloudinary } from "cloudinary";
+import streamifier from "streamifier";
 import pool from "./db.js";
 
 dotenv.config();
@@ -12,6 +15,14 @@ const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret_change_me";
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
 const ADMIN_PASSWORD_RAW = process.env.ADMIN_PASSWORD || "admin123";
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 app.use(cors({
   origin: ["http://localhost:5173", /\.vercel\.app$/, "https://cruaz.my.id", "https://www.cruaz.my.id"]
@@ -28,10 +39,21 @@ async function initDB() {
       tag        TEXT NOT NULL DEFAULT 'engineering',
       excerpt    TEXT,
       body       TEXT,
+      image_url  TEXT,
       published  BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
+  `);
+
+  // Migration: Add image_url if it doesn't exist
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='posts' AND column_name='image_url') THEN
+        ALTER TABLE posts ADD COLUMN image_url TEXT;
+      END IF;
+    END $$;
   `);
 
   await pool.query(`
@@ -202,13 +224,13 @@ app.get("/api/admin/posts", auth, async (req, res) => {
 });
 
 app.post("/api/admin/posts", auth, async (req, res) => {
-  const { title, slug, tag, excerpt, body, published } = req.body;
+  const { title, slug, tag, excerpt, body, published, image_url } = req.body;
   if (!title || !slug) return res.status(400).json({ error: "Title and slug are required" });
   try {
     const { rows } = await pool.query(
-      `INSERT INTO posts (title, slug, tag, excerpt, body, published)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [title, slug, tag || "engineering", excerpt || "", body || "", !!published]
+      `INSERT INTO posts (title, slug, tag, excerpt, body, published, image_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [title, slug, tag || "engineering", excerpt || "", body || "", !!published, image_url || null]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -219,12 +241,12 @@ app.post("/api/admin/posts", auth, async (req, res) => {
 });
 
 app.put("/api/admin/posts/:id", auth, async (req, res) => {
-  const { title, slug, tag, excerpt, body, published } = req.body;
+  const { title, slug, tag, excerpt, body, published, image_url } = req.body;
   try {
     const { rows } = await pool.query(
-      `UPDATE posts SET title=$1, slug=$2, tag=$3, excerpt=$4, body=$5, published=$6, updated_at=NOW()
-       WHERE id=$7 RETURNING *`,
-      [title, slug, tag || "engineering", excerpt || "", body || "", !!published, req.params.id]
+      `UPDATE posts SET title=$1, slug=$2, tag=$3, excerpt=$4, body=$5, published=$6, image_url=$7, updated_at=NOW()
+       WHERE id=$8 RETURNING *`,
+      [title, slug, tag || "engineering", excerpt || "", body || "", !!published, image_url || null, req.params.id]
     );
     if (!rows.length) return res.status(404).json({ error: "Not found" });
     res.json(rows[0]);
@@ -242,6 +264,32 @@ app.delete("/api/admin/posts/:id", auth, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ── Admin: Upload image ───────────────────────────────────────────────────────
+app.post("/api/admin/upload", auth, upload.single("image"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+  
+  try {
+    const streamUpload = (fileBuffer) => {
+      return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "blog_uploads" },
+          (error, result) => {
+            if (result) resolve(result);
+            else reject(error);
+          }
+        );
+        streamifier.createReadStream(fileBuffer).pipe(stream);
+      });
+    };
+
+    const result = await streamUpload(req.file.buffer);
+    res.json({ url: result.secure_url });
+  } catch (err) {
+    console.error("Cloudinary error:", err);
+    res.status(500).json({ error: "Failed to upload image" });
   }
 });
 

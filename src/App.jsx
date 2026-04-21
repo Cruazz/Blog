@@ -183,6 +183,19 @@ const styles = `
   .contact-tile:hover .contact-arrow { color: var(--accent); opacity: 1; transform: translate(2px, -2px); }
 
   .success-msg { color: var(--accent2); font-family: var(--font-mono); font-size: 12px; }
+
+  /* New Image Styles */
+  .featured-image-preview { width: 100%; max-height: 200px; object-fit: cover; border-radius: 6px; margin-bottom: 1rem; border: 1px solid var(--border); }
+  .upload-btn-container { display: flex; gap: 10px; align-items: center; margin-bottom: 1rem; }
+  .hidden-input { display: none; }
+  .post-thumbnail { width: 80px; height: 80px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: var(--bg3); }
+  .blog-card { display: flex; gap: 20px; align-items: flex-start; }
+  .blog-card-content { flex: 1; }
+  .post-hero-image { width: 100%; max-height: 400px; object-fit: cover; border-radius: 8px; margin-bottom: 2rem; border: 1px solid var(--border); }
+  .post-row { display: flex; align-items: center; gap: 1rem; }
+  .post-row-left { flex: 1; }
+  .img-utility-row { display: flex; gap: 8px; margin-top: 0.5rem; }
+  .img-url-text { font-family: var(--font-mono); font-size: 10px; color: var(--muted); background: var(--bg3); padding: 4px 8px; border-radius: 3px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 `
 ;
 
@@ -257,6 +270,7 @@ function Home({ posts, setPage, setActivePost, loading }) {
         <div className="section-label">Recent writing</div>
         {loading ? <div className="loading">Loading posts…</div> : posts.slice(0, 4).map(p => (
           <button key={p.id} className="post-row" onClick={() => { setActivePost(p); setPage("post"); }}>
+            {p.image_url && <img src={p.image_url} alt="" className="post-thumbnail" />}
             <div className="post-row-left">
               <div className="post-row-tag">{p.tag}</div>
               <div className="post-row-title">{p.title}</div>
@@ -294,8 +308,11 @@ function Blog({ posts, setPage, setActivePost, loading, categories }) {
       <div className="blog-list">
         {loading ? <div className="loading">Loading…</div> : filtered.length === 0 ? <div className="no-results">No posts found.</div> : filtered.map(p => (
           <button key={p.id} className="blog-card" onClick={() => { setActivePost(p); setPage("post"); }}>
-            <div className="blog-card-meta"><span className="tag-badge">{p.tag}</span><span className="date-badge">{formatDate(p.created_at)}</span></div>
-            <h3>{p.title}</h3><p>{p.excerpt}</p>
+            {p.image_url && <img src={p.image_url} alt="" className="post-thumbnail" />}
+            <div className="blog-card-content">
+              <div className="blog-card-meta"><span className="tag-badge">{p.tag}</span><span className="date-badge">{formatDate(p.created_at)}</span></div>
+              <h3>{p.title}</h3><p>{p.excerpt}</p>
+            </div>
           </button>
         ))}
       </div>
@@ -314,6 +331,7 @@ function Post({ post, setPage }) {
           <h1 className="post-title">{post.title}</h1>
           <span className="post-byline">Cruaz · {formatDate(post.created_at)}</span>
         </div>
+        {post.image_url && <img src={post.image_url} alt="" className="post-hero-image" />}
         <div className="post-body" dangerouslySetInnerHTML={{ __html: post.body }} />
       </div>
     </div>
@@ -740,12 +758,13 @@ function AdminLogin({ onLogin }) {
 }
 
 // ── Admin Panel ───────────────────────────────────────────────────────────────
-const EMPTY = { title: "", slug: "", tag: "", excerpt: "", body: "", published: false };
+const EMPTY = { title: "", slug: "", tag: "", excerpt: "", body: "", published: false, image_url: "" };
 
 function AdminPanel({ token, onLogout, onPostsChange, categories, onCategoriesChange }) {
   const [posts, setPosts] = useState([]);
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
   const [tab, setTab] = useState("posts");
   const h = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
@@ -787,6 +806,30 @@ function AdminPanel({ token, onLogout, onPostsChange, categories, onCategoriesCh
     });
   }
 
+  async function handleUpload(file, fieldKey) {
+    if (!file) return;
+    setUploading(true);
+    setMsg("");
+    const formData = new FormData();
+    formData.append("image", file);
+    try {
+      const res = await fetch(`${API}/admin/upload`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      if (fieldKey) field(fieldKey, data.url);
+      setMsg("Photo uploaded!");
+      return data.url;
+    } catch (err) {
+      setMsg(`Upload failed: ${err.message}`);
+    } finally {
+      setUploading(false);
+    }
+  }
+
   if (editing !== null) return (
     <div className="page">
       <div className="admin-panel">
@@ -796,6 +839,17 @@ function AdminPanel({ token, onLogout, onPostsChange, categories, onCategoriesCh
         </div>
         <div className="post-editor">
           <div className="editor-grid">
+            <div style={{ gridColumn: "span 2" }}>
+              <label className="editor-label">Featured Image</label>
+              {editing.image_url && <img src={editing.image_url} alt="Preview" className="featured-image-preview" />}
+              <div className="upload-btn-container">
+                <input type="file" id="featured-image-upload" className="hidden-input" accept="image/*" onChange={e => handleUpload(e.target.files[0], "image_url")} />
+                <button className="btn btn-outline btn-sm" onClick={() => document.getElementById("featured-image-upload").click()}>
+                  {uploading ? "Uploading..." : editing.image_url ? "Change image" : "Upload image"}
+                </button>
+                {editing.image_url && <button className="btn btn-danger btn-sm" onClick={() => field("image_url", "")}>Remove</button>}
+              </div>
+            </div>
             <div><label className="editor-label">Title</label><input className="editor-input" value={editing.title} onChange={e => field("title", e.target.value)} placeholder="Post title" /></div>
             <div><label className="editor-label">Slug</label><input className="editor-input" value={editing.slug} onChange={e => field("slug", e.target.value)} /></div>
             <div>
@@ -811,6 +865,22 @@ function AdminPanel({ token, onLogout, onPostsChange, categories, onCategoriesCh
           <div className="editor-row">
             <label className="editor-label">Body (HTML)</label>
             <textarea className="editor-textarea" value={editing.body} onChange={e => field("body", e.target.value)} placeholder="<p>Write your post here…</p>" />
+            <div className="img-utility-row">
+              <input type="file" id="content-image-upload" className="hidden-input" accept="image/*" onChange={async (e) => {
+                const url = await handleUpload(e.target.files[0]);
+                if (url) {
+                  const tag = `<img src="${url}" alt="" />`;
+                  navigator.clipboard.writeText(tag);
+                  setMsg("Img tag copied to clipboard!");
+                }
+              }} />
+              <button className="btn btn-outline btn-sm" onClick={() => document.getElementById("content-image-upload").click()}>
+                + Upload photo for text
+              </button>
+              <span style={{ fontSize: "11px", color: "var(--muted)", fontFamily: "var(--font-mono)" }}>
+                Upload to get an &lt;img&gt; tag copied to your clipboard
+              </span>
+            </div>
           </div>
           <div className="editor-footer">
             <div className="editor-footer-left">
