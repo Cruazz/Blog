@@ -90,20 +90,20 @@ const styles = `
   .tag-badge { font-family: var(--font-mono); font-size: 10px; color: var(--accent2); text-transform: uppercase; letter-spacing: 0.12em; }
   .date-badge { font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
   .blog-card h3 { font-family: var(--font-display); font-size: 1.5rem; font-weight: 400; margin-bottom: 8px; line-height: 1.3; }
-  .blog-card p { color: var(--muted); font-size: 14px; line-height: 1.7; }
+  .blog-card p { color: var(--muted); font-size: 14px; line-height: 1.7; text-align: justify; }
 
   .post-page { max-width: 700px; margin: 0 auto; padding: 4rem 1.5rem 6rem; overflow: hidden; }
   .back-link { font-family: var(--font-mono); font-size: 11px; color: var(--muted); cursor: pointer; letter-spacing: 0.08em; margin-bottom: 3rem; display: inline-block; transition: color 0.2s; background: none; border: none; text-transform: uppercase; }
   .back-link:hover { color: var(--text); }
-  .post-hero-image { width: 100%; max-height: 480px; object-fit: cover; border-radius: 8px; margin-bottom: 2.5rem; border: 1px solid var(--border); }
+  .post-hero-image { width: 85%; margin: 0 auto 2.5rem; display: block; max-height: 480px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
   .post-meta { margin-bottom: 2.5rem; }
   .post-tag { font-family: var(--font-mono); font-size: 11px; color: var(--accent2); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 14px; display: block; }
   .post-title { font-family: var(--font-display); font-size: clamp(2.2rem, 7vw, 4.2rem); font-weight: 300; line-height: 1.1; margin-bottom: 1.2rem; letter-spacing: -0.02em; }
   .post-byline { font-family: var(--font-mono); font-size: 11px; color: var(--muted); letter-spacing: 0.04em; }
   .post-body { border-top: 1px solid var(--border); padding-top: 3rem; overflow: hidden; }
   .post-body h2 { font-family: var(--font-display); font-size: 1.8rem; font-weight: 400; margin: 2.5rem 0 1.2rem; }
-  .post-body p { margin-bottom: 1.8rem; color: var(--text); line-height: 1.9; font-size: 16px; }
-  .post-body img { max-width: 100%; height: auto; border-radius: 6px; margin: 1.5rem auto; }
+  .post-body p { margin-bottom: 1.8rem; color: var(--text); line-height: 1.9; font-size: 16px; text-align: justify; }
+  .post-body img { max-width: 85%; height: auto; border-radius: 6px; margin: 1.5rem auto; }
   .post-body code { font-family: var(--font-mono); font-size: 14px; background: var(--bg3); padding: 3px 7px; border-radius: 4px; color: var(--accent); }
   .post-body blockquote { border-left: 3px solid var(--accent); padding: 0.5rem 0 0.5rem 1.5rem; margin: 2.5rem 0; color: var(--muted); font-style: italic; font-family: var(--font-display); font-size: 1.2rem; line-height: 1.6; }
   .featured-image-preview { width: 100%; max-height: 220px; object-fit: cover; border-radius: 6px; margin-bottom: 1rem; border: 1px solid var(--border); }
@@ -125,7 +125,7 @@ const styles = `
 
   .about-page { max-width: 700px; margin: 0 auto; padding: 5rem 1.5rem 6rem; }
   .about-page h2 { font-family: var(--font-display); font-size: 2.5rem; font-weight: 400; margin-bottom: 2.5rem; letter-spacing: -0.01em; }
-  .about-body p { margin-bottom: 1.8rem; line-height: 1.9; font-size: 16px; }
+  .about-body p { margin-bottom: 1.8rem; line-height: 1.9; font-size: 16px; text-align: justify; }
   .skills-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 2rem; }
   .skill-chip { font-family: var(--font-mono); font-size: 12px; border: 1px solid var(--border); color: var(--muted); padding: 6px 14px; border-radius: 4px; transition: all 0.2s; }
   .skill-chip:hover { color: var(--text); border-color: var(--muted); background: var(--bg2); }
