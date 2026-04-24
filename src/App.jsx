@@ -25,10 +25,10 @@ const styles = `
   }
 
   .blog-nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 1000; }
-  .blog-nav-logo { font-family: var(--font-display); font-size: 1.25rem; color: var(--text); cursor: pointer; letter-spacing: 0.02em; background: none; border: none; font-weight: 600; z-index: 1001; }
+  .blog-nav-logo { font-family: var(--font-display); font-size: 1.25rem; color: var(--text); cursor: pointer; letter-spacing: 0.02em; background: none; border: none; font-weight: 600; z-index: 1001; text-decoration: none; }
   .blog-nav-links { display: flex; gap: 1.8rem; list-style: none; }
-  .blog-nav-links button { color: var(--muted); background: none; border: none; font-size: 13px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); transition: color 0.2s; padding: 0; }
-  .blog-nav-links button:hover, .blog-nav-links button.active { color: var(--text); }
+  .blog-nav-links a { color: var(--muted); background: none; border: none; font-size: 13px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); transition: color 0.2s; padding: 0; text-decoration: none; }
+  .blog-nav-links a:hover, .blog-nav-links a.active { color: var(--text); }
   
   .nav-actions { display: flex; gap: 12px; align-items: center; z-index: 1001; }
   .theme-toggle { background: none; border: 1px solid var(--border); color: var(--muted); padding: 6px 12px; border-radius: 20px; font-size: 11px; cursor: pointer; font-family: var(--font-body); transition: all 0.2s; white-space: nowrap; }
@@ -61,7 +61,7 @@ const styles = `
   .home-divider { max-width: 800px; margin: 0 auto; padding: 0 1.5rem 2rem; border-top: 1px solid var(--border); }
   .section-label { font-family: var(--font-mono); font-size: 11px; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; margin: 3rem 0 1.5rem; }
   
-  .post-row { padding: 1.5rem 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; cursor: pointer; transition: all 0.2s; background: none; border-left: none; border-right: none; border-top: none; width: 100%; text-align: left; color: var(--text); font-family: var(--font-body); overflow: hidden; }
+  .post-row { padding: 1.5rem 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; cursor: pointer; transition: all 0.2s; background: none; border-left: none; border-right: none; border-top: none; width: 100%; text-align: left; color: var(--text); font-family: var(--font-body); overflow: hidden; text-decoration: none; }
   .post-row:hover { opacity: 0.7; transform: translateX(4px); }
   .post-row-left { flex: 1; min-width: 0; }
   .post-row-tag { font-family: var(--font-mono); font-size: 10px; color: var(--accent2); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 6px; }
@@ -82,7 +82,7 @@ const styles = `
   .tag-filter.active { background: var(--accent); color: #0e0e0e; border-color: var(--accent); }
 
   .blog-list { max-width: 800px; margin: 0 auto; padding: 0 1.5rem 4rem; overflow: hidden; }
-  .blog-card { padding: 2.5rem 0; border-bottom: 1px solid var(--border); cursor: pointer; transition: opacity 0.2s; background: none; border-left: none; border-right: none; border-top: none; width: 100%; text-align: left; color: var(--text); font-family: var(--font-body); display: flex; gap: 1.5rem; align-items: flex-start; overflow: hidden; }
+  .blog-card { padding: 2.5rem 0; border-bottom: 1px solid var(--border); cursor: pointer; transition: opacity 0.2s; background: none; border-left: none; border-right: none; border-top: none; width: 100%; text-align: left; color: var(--text); font-family: var(--font-body); display: flex; gap: 1.5rem; align-items: flex-start; overflow: hidden; text-decoration: none; }
   .blog-card:hover { opacity: 0.75; }
   .blog-card-content { flex: 1; min-width: 0; }
   .post-thumbnail { width: 120px; min-width: 120px; height: 90px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
@@ -267,6 +267,11 @@ const styles = `
     .blog-nav { padding: 0.8rem 1.2rem; }
     .blog-nav-logo { font-size: 1.15rem; }
   }
+  .loading-dots { display: flex; justify-content: center; gap: 6px; padding: 3rem 0; }
+  .loading-dots span { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: dotPulse 1.4s infinite ease-in-out both; }
+  .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+  .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+  @keyframes dotPulse { 0%, 80%, 100% { transform: scale(0); opacity: 0; } 40% { transform: scale(1.0); opacity: 1; } }
 `;
 ;
 
@@ -275,6 +280,12 @@ const styles = `
 function slugify(str) {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
+
+const Loader = () => (
+  <div className="loading-dots">
+    <span></span><span></span><span></span>
+  </div>
+);
 
 const Icons = {
   Github: () => (
@@ -304,25 +315,47 @@ function formatDate(iso) {
 function Nav({ page, setPage, light, setLight, token, onLogout }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const links = [
-    { id: "home", label: "Home" }, { id: "blog", label: "Writing" },
-    { id: "portfolio", label: "Work" }, { id: "about", label: "About" },
-    { id: "contact", label: "Contact" },
+    { id: "home", label: "Home", path: "/" },
+    { id: "blog", label: "Writing", path: "/blog" },
+    { id: "portfolio", label: "Work", path: "/portfolio" },
+    { id: "about", label: "About", path: "/about" },
+    { id: "contact", label: "Contact", path: "/contact" },
   ];
 
-  const handlePageChange = (id) => {
+  const handlePageChange = (e, id) => {
+    e.preventDefault();
     setPage(id);
     setMenuOpen(false);
   };
 
   return (
     <nav className="blog-nav">
-      <button className="blog-nav-logo" onClick={() => handlePageChange("home")}>Cruaz</button>
+      <a href="/" className="blog-nav-logo" onClick={(e) => handlePageChange(e, "home")}>Cruaz</a>
       
       <ul className={`blog-nav-links${menuOpen ? " open" : ""}`}>
         {links.map(l => (
-          <li key={l.id}><button className={page === l.id ? "active" : ""} onClick={() => handlePageChange(l.id)}>{l.label}</button></li>
+          <li key={l.id}>
+            <a 
+              href={l.path} 
+              className={page === l.id ? "active" : ""} 
+              onClick={(e) => handlePageChange(e, l.id)}
+            >
+              {l.label}
+            </a>
+          </li>
         ))}
-        {token && <li><button className={page === "admin" ? "active" : ""} onClick={() => handlePageChange("admin")} style={{ color: "var(--accent)" }}>Admin</button></li>}
+        {token && (
+          <li>
+            <a 
+              href="/admin" 
+              className={page === "admin" ? "active" : ""} 
+              onClick={(e) => handlePageChange(e, "admin")} 
+              style={{ color: "var(--accent)" }}
+            >
+              Admin
+            </a>
+          </li>
+        )}
       </ul>
 
       <div className="nav-actions">
@@ -351,15 +384,15 @@ function Home({ posts, setPage, setActivePost, loading }) {
       </div>
       <div className="home-divider">
         <div className="section-label">Recent writing</div>
-        {loading ? <div className="loading">Loading posts…</div> : posts.slice(0, 4).map(p => (
-          <button key={p.id} className="post-row" onClick={() => { setActivePost(p); setPage("post"); }}>
+        {loading ? <Loader /> : posts.slice(0, 4).map(p => (
+          <a key={p.id} href={`/${p.slug}`} className="post-row" onClick={(e) => { e.preventDefault(); setPage("post", p); }}>
             {p.image_url && <img src={p.image_url} alt="" className="post-thumbnail" />}
             <div className="post-row-left">
               <div className="post-row-tag">{p.tag}</div>
               <div className="post-row-title">{p.title}</div>
             </div>
             <div className="post-row-date">{formatDate(p.created_at)}</div>
-          </button>
+          </a>
         ))}
       </div>
     </div>
@@ -389,14 +422,14 @@ function Blog({ posts, setPage, setActivePost, loading, categories }) {
         ))}
       </div>
       <div className="blog-list">
-        {loading ? <div className="loading">Loading…</div> : filtered.length === 0 ? <div className="no-results">No posts found.</div> : filtered.map(p => (
-          <button key={p.id} className="blog-card" onClick={() => { setActivePost(p); setPage("post"); }}>
+        {loading ? <Loader /> : filtered.length === 0 ? <div className="no-results">No posts found.</div> : filtered.map(p => (
+          <a key={p.id} href={`/${p.slug}`} className="blog-card" onClick={(e) => { e.preventDefault(); setPage("post", p); }}>
             {p.image_url && <img src={p.image_url} alt="" className="post-thumbnail" />}
             <div className="blog-card-content">
               <div className="blog-card-meta"><span className="tag-badge">{p.tag}</span><span className="date-badge">{formatDate(p.created_at)}</span></div>
               <h3>{p.title}</h3><p>{p.excerpt}</p>
             </div>
-          </button>
+          </a>
         ))}
       </div>
     </div>
@@ -408,7 +441,7 @@ function Post({ post, setPage }) {
   return (
     <div className="page">
       <div className="post-page">
-        <button className="back-link" onClick={() => setPage("blog")}>← Back to writing</button>
+        <a href="/blog" className="back-link" onClick={(e) => { e.preventDefault(); setPage("blog"); }}>← Back to writing</a>
         <div className="post-meta">
           <span className="post-tag">{post.tag}</span>
           <h1 className="post-title">{post.title}</h1>
@@ -433,7 +466,7 @@ function Portfolio() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="loading">Loading projects…</div>;
+  if (loading) return <div className="page"><Loader /></div>;
 
   return (
     <div className="page">
@@ -467,16 +500,16 @@ function Portfolio() {
   );
 }
 
-const DEFAULT_SKILLS = ["React", "PostgreSQL", "Excel", "Node.js", "Express", "JavaScript", "SQL", "Python", "Vite", "Chart.js", "REST APIs", "Git"];
-
 function About() {
-  const [skills, setSkills] = useState(DEFAULT_SKILLS);
+  const [skills, setSkills] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch(`${API}/skills`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (Array.isArray(data) && data.length > 0) setSkills(data.map(s => s.name)); })
-      .catch(() => { });
+      .catch(() => { })
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -488,7 +521,13 @@ function About() {
           <p>On the development side, I build full-stack web applications with React and Node.js, backed by PostgreSQL. On the data side, I work extensively with SQL queries, and Excel analysis to help teams make better decisions.</p>
           <p>I care about the full picture: clean code, well-structured databases, and dashboards that actually answer the right questions. When I'm not building, I write about what I'm learning.</p>
           <div className="section-label" style={{ marginTop: "2rem" }}>Technologies I work with</div>
-          <div className="skills-grid">{skills.map(s => <span key={s} className="skill-chip">{s}</span>)}</div>
+          <div className="skills-grid">
+            {loading ? (
+              <Loader />
+            ) : (
+              skills.map(s => <span key={s} className="skill-chip">{s}</span>)
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -1094,22 +1133,50 @@ export default function App() {
   const [token, setToken] = useState(() => localStorage.getItem("blog_token"));
   const [categories, setCategories] = useState([]);
 
+  const RESERVED_PAGES = ["home", "blog", "portfolio", "about", "contact", "admin"];
+
   useEffect(() => {
-    fetchPosts();
+    const handleLocation = (allPosts = posts) => {
+      const path = window.location.pathname.slice(1);
+      if (!path || path === "home") {
+        setPage("home");
+      } else if (RESERVED_PAGES.includes(path)) {
+        setPage(path);
+      } else {
+        // Find post by slug
+        const p = allPosts.find(x => x.slug === path);
+        if (p) {
+          setActivePost(p);
+          setPage("post");
+        } else {
+          setPage("home"); // Fallback
+        }
+      }
+    };
+
+    fetchPosts().then(allPosts => {
+      handleLocation(allPosts);
+    });
     fetchCategories();
-    // Allow direct navigation via /#admin or /admin URL
-    if (window.location.hash === "#admin" || window.location.pathname === "/admin") {
-      setPage("admin");
-    }
+
+    const onPopState = () => handleLocation();
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
   async function fetchPosts() {
     try {
       const res = await fetch(`${API}/posts`);
       const data = await res.json();
-      setPosts(Array.isArray(data) ? data : []);
-    } catch { setPosts([]); }
-    finally { setLoading(false); }
+      const allPosts = Array.isArray(data) ? data : [];
+      setPosts(allPosts);
+      return allPosts;
+    } catch { 
+      setPosts([]); 
+      return [];
+    } finally { 
+      setLoading(false); 
+    }
   }
 
   async function fetchCategories() {
@@ -1120,9 +1187,23 @@ export default function App() {
     } catch { setCategories([]); }
   }
 
-  function handleLogin(t) { setToken(t); localStorage.setItem("blog_token", t); setPage("admin"); }
-  function handleLogout() { setToken(null); localStorage.removeItem("blog_token"); setPage("home"); }
-  function go(p) { setPage(p); window.scrollTo(0, 0); }
+  function handleLogin(t) { setToken(t); localStorage.setItem("blog_token", t); go("admin"); }
+  function handleLogout() { setToken(null); localStorage.removeItem("blog_token"); go("home"); }
+  
+  function go(p, postObj = null) {
+    setPage(p);
+    if (postObj) setActivePost(postObj);
+    
+    let path = `/${p}`;
+    if (p === "home") path = "/";
+    else if (p === "post" && postObj) path = `/${postObj.slug}`;
+    else if (p === "post" && !postObj && activePost) path = `/${activePost.slug}`;
+    
+    if (window.location.pathname !== path) {
+      window.history.pushState({}, "", path);
+    }
+    window.scrollTo(0, 0);
+  }
 
   return (
     <>
