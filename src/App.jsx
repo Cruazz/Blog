@@ -1125,7 +1125,15 @@ function AdminPanel({ token, onLogout, onPostsChange, categories, onCategoriesCh
 
 // ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [page, setPage] = useState("home");
+  const RESERVED_PAGES = ["home", "blog", "portfolio", "about", "contact", "admin"];
+
+  const [page, setPage] = useState(() => {
+    const path = window.location.pathname.slice(1);
+    if (!path || path === "home") return "home";
+    if (RESERVED_PAGES.includes(path)) return path;
+    return "loading"; 
+  });
+
   const [light, setLight] = useState(false);
   const [activePost, setActivePost] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -1133,7 +1141,7 @@ export default function App() {
   const [token, setToken] = useState(() => localStorage.getItem("blog_token"));
   const [categories, setCategories] = useState([]);
 
-  const RESERVED_PAGES = ["home", "blog", "portfolio", "about", "contact", "admin"];
+
 
   useEffect(() => {
     const handleLocation = (allPosts = posts) => {
@@ -1214,6 +1222,7 @@ export default function App() {
         {page === "admin" && token && <AdminPanel token={token} onLogout={handleLogout} onPostsChange={fetchPosts} categories={categories} onCategoriesChange={fetchCategories} />}
         {page !== "admin" && (
           <>
+            {page === "loading" && <div style={{ minHeight: "80vh", display: "flex", alignItems: "center", justifyContent: "center" }}><Loader /></div>}
             {page === "home" && <Home posts={posts} setPage={go} setActivePost={setActivePost} loading={loading} />}
             {page === "blog" && <Blog posts={posts} setPage={go} setActivePost={setActivePost} loading={loading} categories={categories} />}
             {page === "post" && <Post post={activePost} setPage={go} />}
