@@ -458,7 +458,6 @@ function Portfolio() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
-  const [tag, setTag] = useState("all");
 
   useEffect(() => {
     fetch(`${API}/projects`)
@@ -470,18 +469,15 @@ function Portfolio() {
 
   if (loading) return <div className="page"><Loader /></div>;
 
-  const distinctTags = ["all", ...Array.from(new Set(projects.flatMap(p => Array.isArray(p.tags) ? p.tags : [])))];
-
   const filtered = projects.filter(p => {
     const pTags = Array.isArray(p.tags) ? p.tags : [];
     const pName = p.name || "";
     const pDesc = p.description || "";
-    const matchTag = tag === "all" || pTags.includes(tag);
     const matchQ = !query || 
       pName.toLowerCase().includes(query.toLowerCase()) || 
       pDesc.toLowerCase().includes(query.toLowerCase()) ||
       pTags.some(t => typeof t === "string" && t.toLowerCase().includes(query.toLowerCase()));
-    return matchTag && matchQ;
+    return matchQ;
   });
 
   return (
@@ -495,15 +491,6 @@ function Portfolio() {
           value={query} 
           onChange={e => setQuery(e.target.value)} 
         />
-        {distinctTags.map(t => (
-          <button 
-            key={t} 
-            className={`tag-filter${tag === t ? " active" : ""}`} 
-            onClick={() => setTag(t)}
-          >
-            {t}
-          </button>
-        ))}
       </div>
       <div className="portfolio-grid" style={{ marginTop: "1rem" }}>
         {projects.length === 0 ? (
