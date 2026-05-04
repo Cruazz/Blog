@@ -560,10 +560,14 @@ function About() {
 
 function Contact() {
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("Collaborate");
   const [projectType, setProjectType] = useState("Web Application");
   const [timeline, setTimeline] = useState("1–3 months");
   const [message, setMessage] = useState("Here's what I have in mind:\n");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
 
   function handleSubjectChange(val) {
     setSubject(val);
@@ -573,18 +577,47 @@ function Contact() {
   }
 
   function handleSend() {
-    if (!message.trim()) return;
-    const sub = encodeURIComponent(subject);
-    let bodyText = `Hi, I am ${name || "someone"}, and I want to talk about`;
-    if (subject === "Collaborate") {
-      bodyText += `\n\nProject Type: ${projectType}\nTimeline: ${timeline}\n\n${message}`;
-    } else {
-      bodyText += `\n\n${message}`;
-    }
-    window.open(
-      `https://mail.google.com/mail/?view=cm&to=hezekiah.mitchellt@gmail.com&su=${sub}&body=${encodeURIComponent(bodyText)}`,
-      "_blank"
-    );
+    if (!message.trim() || !email.trim()) return;
+    setSending(true);
+    setError("");
+
+    const data = {
+      name,
+      email,
+      _subject: `Contact Form Submission from ${name || "Someone"}`,
+      _replyto: email,
+      projectType: subject === "Collaborate" ? projectType : undefined,
+      timeline: subject === "Collaborate" ? timeline : undefined,
+      message
+    };
+
+    fetch("https://formsubmit.co/ajax/hezekiah.mitchellt@gmail.com", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(data)
+    })
+    .then(r => {
+      if (!r.ok) throw new Error("Failed to send");
+      return r.json();
+    })
+    .then(resData => {
+      setSending(false);
+      if (resData.success === "true" || resData.success === true) {
+        setSent(true);
+        setName("");
+        setEmail("");
+        setMessage("");
+      } else {
+        setError(resData.message || "Failed to send message. Please try again.");
+      }
+    })
+    .catch(err => {
+      setSending(false);
+      setError("An error occurred. Please try again later.");
+    });
   }
 
   const services = ["Web Applications", "Data Dashboards", "PostgreSQL & SQL", "Excel & Data Analysis", "Consulting"];
@@ -610,6 +643,10 @@ function Contact() {
           <div className="form-group">
             <label className="form-label">Your name</label>
             <input className="form-input" type="text" placeholder="Your name" value={name} onChange={e => setName(e.target.value)} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Your email</label>
+            <input className="form-input" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required />
           </div>
           <div className="form-group">
             <label className="form-label">Subject</label>
@@ -644,10 +681,15 @@ function Contact() {
             <label className="form-label">Message</label>
             <textarea className="form-input" placeholder="What's on your mind?" value={message} onChange={e => setMessage(e.target.value)} />
           </div>
-          <button className="btn btn-primary" onClick={handleSend} disabled={!message.trim()}>
-            Send message ↗
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+            <button className="btn btn-primary" onClick={handleSend} disabled={sending || !message.trim() || !email.trim()}>
+              {sending ? "Sending..." : "Send message ↗"}
+            </button>
+            {sent && <span style={{ color: "#7eb8a4", fontSize: "13px", fontFamily: "var(--font-body)" }}>Message sent successfully!</span>}
+            {error && <span style={{ color: "#ef4444", fontSize: "13px", fontFamily: "var(--font-body)" }}>{error}</span>}
+          </div>
         </div>
+
 
         <div className="section-label" style={{ marginTop: "3rem", marginBottom: "0.8rem" }}>Direct contact</div>
         <div className="contact-channels">
