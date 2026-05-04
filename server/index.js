@@ -25,7 +25,7 @@ cloudinary.config({
 const upload = multer({ storage: multer.memoryStorage() });
 
 app.use(cors({
-  origin: ["http://localhost:5173", /\.vercel\.app$/, "https://cruaz.my.id", "https://www.cruaz.my.id"]
+  origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", /\.vercel\.app$/, "https://cruaz.my.id", "https://www.cruaz.my.id"]
 }));
 app.use(express.json());
 
