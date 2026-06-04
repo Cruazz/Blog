@@ -118,6 +118,11 @@ export function TavernModal({ onClose }) {
                 <div className="tavern-bard-eq">
                   <span /><span /><span /><span />
                 </div>
+                {lastfm.url && (
+                  <a className="tavern-bard-listen" href={`https://open.spotify.com/search/${encodeURIComponent(lastfm.artist + " " + lastfm.title)}`} target="_blank" rel="noopener noreferrer">
+                    🎧 Listen too
+                  </a>
+                )}
               </div>
             ) : lastfm?.lastPlayed ? (
               <div className="tavern-bard-idle">
@@ -131,6 +136,11 @@ export function TavernModal({ onClose }) {
                   <div className="tavern-bard-title">{lastfm.lastPlayed.title}</div>
                   <div className="tavern-bard-artist">{lastfm.lastPlayed.artist}</div>
                 </div>
+                {lastfm.lastPlayed.url && (
+                  <a className="tavern-bard-listen tavern-bard-listen-sm" href={`https://open.spotify.com/search/${encodeURIComponent(lastfm.lastPlayed.artist + " " + lastfm.lastPlayed.title)}`} target="_blank" rel="noopener noreferrer">
+                    🎧
+                  </a>
+                )}
               </div>
             ) : (
               <div className="tavern-bard-idle">

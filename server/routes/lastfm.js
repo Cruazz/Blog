@@ -43,6 +43,7 @@ router.get("/lastfm/now-playing", async (req, res) => {
           album: current.album?.["#text"] || "",
           albumArt: current.image?.[3]?.["#text"] || current.image?.[2]?.["#text"] || null,
           playedAt: current.date?.["#text"] || null,
+          url: current.url || null,
         },
       });
     }
@@ -53,6 +54,7 @@ router.get("/lastfm/now-playing", async (req, res) => {
       artist: current.artist?.["#text"] || "Unknown Artist",
       album: current.album?.["#text"] || "",
       albumArt: current.image?.[3]?.["#text"] || current.image?.[2]?.["#text"] || null,
+      url: current.url || null,
     });
   } catch (err) {
     console.error("Last.fm fetch error:", err.message);

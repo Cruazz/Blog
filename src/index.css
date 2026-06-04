@@ -3463,6 +3463,32 @@ img {
 .tavern-bard-eq span:nth-child(4) { height: 75%; animation-delay: 0.1s; }
 @keyframes tavern-eq { 0% { height: 20%; } 100% { height: 90%; } }
 
+.tavern-bard-listen {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 4px 10px;
+  font-family: var(--font-game-mono);
+  font-size: 13px;
+  color: #f5ead0;
+  background: linear-gradient(135deg, #1db954, #1aa34a);
+  border: 1px solid #17943f;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.tavern-bard-listen:hover {
+  background: linear-gradient(135deg, #1ed760, #1db954);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(29,185,84,0.3);
+}
+.tavern-bard-listen-sm {
+  padding: 4px 6px;
+  font-size: 16px;
+}
+
 /* ── Quest ── */
 .tavern-quest-text {
   margin: 0 0 10px 0;
