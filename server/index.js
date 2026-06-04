@@ -1,35 +1,26 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import multer from "multer";
-import { v2 as cloudinary } from "cloudinary";
-import streamifier from "streamifier";
 import pool from "./db.js";
+
+import authRouter from "./routes/auth.js";
+import postsRouter from "./routes/posts.js";
+import categoriesRouter from "./routes/categories.js";
+import skillsRouter from "./routes/skills.js";
+import projectsRouter from "./routes/projects.js";
+import tavernRouter, { initTavernTable } from "./routes/tavern.js";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret_change_me";
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
-const ADMIN_PASSWORD_RAW = process.env.ADMIN_PASSWORD || "admin123";
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
-const upload = multer({ storage: multer.memoryStorage() });
 
 app.use(cors({
   origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", /\.vercel\.app$/, "https://cruaz.my.id", "https://www.cruaz.my.id"]
 }));
 app.use(express.json());
 
-// ── DB Init ───────────────────────────────────────────────────────────────────
+// ── DB Init (Table Schema & Migrations) ──────────────────────────────────────
 async function initDB() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS posts (
@@ -131,7 +122,7 @@ async function initDB() {
         'why-postgres-for-everything',
         'data',
         'Postgres handles structured data, JSON blobs, full-text search, and time-series rollups. At some point I stopped looking for alternatives.',
-        '<h2>It does more than you think</h2><p>Most people use PostgreSQL as a simple row store. It is that, but it is also a JSON document database, a full-text search engine, a geospatial database (with PostGIS), and a capable time-series store. The extension ecosystem means you rarely need to reach for a separate specialised tool.</p><h2>The query planner is genuinely impressive</h2><p>Modern PostgreSQL makes good decisions. Running <code>EXPLAIN ANALYSE</code> on a slow query and watching it pick a better join strategy after you add an index is satisfying in a way that never gets old.</p><h2>It scales further than most projects ever need</h2><p>For the data volumes most web applications and analytical workloads deal with, Postgres is not the bottleneck. Your application code, your missing indexes, or your schema design will be the bottleneck long before the database is.</p>',
+        '<h2>It does more than you think</h2><p>Most people use PostgreSQL as a simple row store. It is that, but it is also a JSON document database, a full-text search engine, a geospatial database (with PostGIS), and a capable time-series store. The extension ecosystem means you rarely need to reach for a separate specialised tool.</p><h2>The query planner is genuinely impressive</h2><p>Modern PostgreSQL makes good decisions. Running <code>EXPLAIN ANALYSE</code> on a slow query and watching it pick a better join strategy after you add an index is satisfying in a way that never gets old.</p><h2>It scales further than most projects ever need</h2><p>For the data volumes most web applications and analytical workloads deal with, Postgres is not the bottleneck. Your application code, your missing indexes, or your schema design will be the bottleneck long boast the database is.</p>',
         TRUE
       )
     `);
@@ -163,271 +154,24 @@ async function initDB() {
   }
 
   console.log("✓ Database ready");
+
+  // Init tavern_status table
+  await initTavernTable();
+  console.log("✓ Tavern status ready");
 }
 
-// ── Auth middleware ───────────────────────────────────────────────────────────
-function auth(req, res, next) {
-  const header = req.headers.authorization;
-  if (!header?.startsWith("Bearer ")) return res.status(401).json({ error: "Unauthorized" });
-  try {
-    req.admin = jwt.verify(header.slice(7), JWT_SECRET);
-    next();
-  } catch {
-    res.status(401).json({ error: "Invalid token" });
-  }
-}
-
-// ── Public routes ─────────────────────────────────────────────────────────────
+// ── Public Routes ─────────────────────────────────────────────────────────────
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 
-app.get("/api/posts", async (req, res) => {
-  try {
-    const { rows } = await pool.query(
-      "SELECT * FROM posts WHERE published = TRUE ORDER BY created_at DESC"
-    );
-    res.json(rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+// ── Mount Routes ─────────────────────────────────────────────────────────────
+app.use("/api/admin", authRouter);
+app.use("/api", postsRouter);
+app.use("/api", categoriesRouter);
+app.use("/api", skillsRouter);
+app.use("/api", projectsRouter);
+app.use("/api", tavernRouter);
 
-app.get("/api/posts/:slug", async (req, res) => {
-  try {
-    const { rows } = await pool.query(
-      "SELECT * FROM posts WHERE slug = $1 AND published = TRUE",
-      [req.params.slug]
-    );
-    if (!rows.length) return res.status(404).json({ error: "Not found" });
-    res.json(rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// ── Admin: login ──────────────────────────────────────────────────────────────
-app.post("/api/admin/login", async (req, res) => {
-  const { username, password } = req.body || {};
-  if (!username || !password)
-    return res.status(400).json({ error: "Username and password required" });
-
-  if (username !== ADMIN_USERNAME)
-    return res.status(401).json({ error: "Invalid credentials" });
-
-  // Support both plain-text and pre-hashed passwords in .env
-  let valid = false;
-  if (ADMIN_PASSWORD_RAW.startsWith("$2")) {
-    valid = await bcrypt.compare(password, ADMIN_PASSWORD_RAW);
-  } else {
-    valid = password === ADMIN_PASSWORD_RAW;
-  }
-
-  if (!valid) return res.status(401).json({ error: "Invalid credentials" });
-
-  const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: "7d" });
-  res.json({ token });
-});
-
-// ── Admin: CRUD posts ─────────────────────────────────────────────────────────
-app.get("/api/admin/posts", auth, async (req, res) => {
-  try {
-    const { rows } = await pool.query("SELECT * FROM posts ORDER BY created_at DESC");
-    res.json(rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-app.post("/api/admin/posts", auth, async (req, res) => {
-  const { title, slug, tag, excerpt, body, published, image_url } = req.body;
-  if (!title || !slug) return res.status(400).json({ error: "Title and slug are required" });
-  try {
-    const { rows } = await pool.query(
-      `INSERT INTO posts (title, slug, tag, excerpt, body, published, image_url)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [title, slug, tag || "engineering", excerpt || "", body || "", !!published, image_url || null]
-    );
-    res.status(201).json(rows[0]);
-  } catch (err) {
-    if (err.code === "23505") return res.status(409).json({ error: "Slug already exists" });
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-app.put("/api/admin/posts/:id", auth, async (req, res) => {
-  const { title, slug, tag, excerpt, body, published, image_url } = req.body;
-  try {
-    const { rows } = await pool.query(
-      `UPDATE posts SET title=$1, slug=$2, tag=$3, excerpt=$4, body=$5, published=$6, image_url=$7, updated_at=NOW()
-       WHERE id=$8 RETURNING *`,
-      [title, slug, tag || "engineering", excerpt || "", body || "", !!published, image_url || null, req.params.id]
-    );
-    if (!rows.length) return res.status(404).json({ error: "Not found" });
-    res.json(rows[0]);
-  } catch (err) {
-    if (err.code === "23505") return res.status(409).json({ error: "Slug already exists" });
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-app.delete("/api/admin/posts/:id", auth, async (req, res) => {
-  try {
-    await pool.query("DELETE FROM posts WHERE id=$1", [req.params.id]);
-    res.status(204).end();
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// ── Admin: Upload image ───────────────────────────────────────────────────────
-app.post("/api/admin/upload", auth, upload.single("image"), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-  
-  try {
-    const streamUpload = (fileBuffer) => {
-      return new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { folder: "blog_uploads" },
-          (error, result) => {
-            if (result) resolve(result);
-            else reject(error);
-          }
-        );
-        streamifier.createReadStream(fileBuffer).pipe(stream);
-      });
-    };
-
-    const result = await streamUpload(req.file.buffer);
-    res.json({ url: result.secure_url });
-  } catch (err) {
-    console.error("Cloudinary error:", err);
-    res.status(500).json({ error: "Failed to upload image" });
-  }
-});
-
-// ── Categories ──────────────────────────────────────────────────────────────────
-app.get("/api/categories", async (req, res) => {
-  try {
-    const { rows } = await pool.query("SELECT * FROM categories ORDER BY name ASC");
-    res.json(rows);
-  } catch (err) { console.error(err); res.status(500).json({ error: "Server error" }); }
-});
-
-app.post("/api/admin/categories", auth, async (req, res) => {
-  const { name, slug } = req.body;
-  if (!name || !slug) return res.status(400).json({ error: "Name and slug required" });
-  try {
-    const { rows } = await pool.query(
-      "INSERT INTO categories (name, slug) VALUES ($1, $2) RETURNING *",
-      [name, slug]
-    );
-    res.status(201).json(rows[0]);
-  } catch (err) {
-    if (err.code === "23505") return res.status(409).json({ error: "Category already exists" });
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-app.delete("/api/admin/categories/:id", auth, async (req, res) => {
-  try {
-    await pool.query("DELETE FROM categories WHERE id=$1", [req.params.id]);
-    res.status(204).end();
-  } catch (err) { console.error(err); res.status(500).json({ error: "Server error" }); }
-});
-
-// ── Skills ────────────────────────────────────────────────────────────────────
-app.get("/api/skills", async (req, res) => {
-  try {
-    const { rows } = await pool.query("SELECT * FROM skills ORDER BY sort_order ASC, name ASC");
-    res.json(rows);
-  } catch (err) { console.error(err); res.status(500).json({ error: "Server error" }); }
-});
-
-app.get("/api/admin/skills", auth, async (req, res) => {
-  try {
-    const { rows } = await pool.query("SELECT * FROM skills ORDER BY sort_order ASC, name ASC");
-    res.json(rows);
-  } catch (err) { console.error(err); res.status(500).json({ error: "Server error" }); }
-});
-
-app.post("/api/admin/skills", auth, async (req, res) => {
-  const { name, sort_order } = req.body;
-  if (!name) return res.status(400).json({ error: "Name required" });
-  try {
-    const { rows } = await pool.query(
-      "INSERT INTO skills (name, sort_order) VALUES ($1, $2) RETURNING *",
-      [name, sort_order || 0]
-    );
-    res.status(201).json(rows[0]);
-  } catch (err) {
-    if (err.code === "23505") return res.status(409).json({ error: "Skill already exists" });
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-app.delete("/api/admin/skills/:id", auth, async (req, res) => {
-  try {
-    await pool.query("DELETE FROM skills WHERE id=$1", [req.params.id]);
-    res.status(204).end();
-  } catch (err) { console.error(err); res.status(500).json({ error: "Server error" }); }
-});
-
-// ── Projects ──────────────────────────────────────────────────────────────────
-app.get("/api/projects", async (req, res) => {
-  try {
-    const { rows } = await pool.query(
-      "SELECT * FROM projects WHERE featured = TRUE ORDER BY sort_order ASC, created_at DESC"
-    );
-    res.json(rows);
-  } catch (err) { console.error(err); res.status(500).json({ error: "Server error" }); }
-});
-
-app.get("/api/admin/projects", auth, async (req, res) => {
-  try {
-    const { rows } = await pool.query("SELECT * FROM projects ORDER BY sort_order ASC, created_at DESC");
-    res.json(rows);
-  } catch (err) { console.error(err); res.status(500).json({ error: "Server error" }); }
-});
-
-app.post("/api/admin/projects", auth, async (req, res) => {
-  const { name, description, tags, github_url, live_url, featured, sort_order, display_urls } = req.body;
-  if (!name) return res.status(400).json({ error: "Project name required" });
-  try {
-    const { rows } = await pool.query(
-      `INSERT INTO projects (name, description, tags, github_url, live_url, featured, sort_order, display_urls)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-      [name, description || "", tags || [], github_url || null, live_url || null, featured !== false, sort_order || 0, display_urls || []]
-    );
-    res.status(201).json(rows[0]);
-  } catch (err) { console.error(err); res.status(500).json({ error: "Server error" }); }
-});
-
-app.put("/api/admin/projects/:id", auth, async (req, res) => {
-  const { name, description, tags, github_url, live_url, featured, sort_order, display_urls } = req.body;
-  try {
-    const { rows } = await pool.query(
-      `UPDATE projects SET name=$1, description=$2, tags=$3, github_url=$4,
-       live_url=$5, featured=$6, sort_order=$7, display_urls=$8 WHERE id=$9 RETURNING *`,
-      [name, description || "", tags || [], github_url || null, live_url || null, featured !== false, sort_order || 0, display_urls || [], req.params.id]
-    );
-    if (!rows.length) return res.status(404).json({ error: "Not found" });
-    res.json(rows[0]);
-  } catch (err) { console.error(err); res.status(500).json({ error: "Server error" }); }
-});
-
-app.delete("/api/admin/projects/:id", auth, async (req, res) => {
-  try {
-    await pool.query("DELETE FROM projects WHERE id=$1", [req.params.id]);
-    res.status(204).end();
-  } catch (err) { console.error(err); res.status(500).json({ error: "Server error" }); }
-});
-
-// ── Start ─────────────────────────────────────────────────────────────────────
+// ── Start Server ─────────────────────────────────────────────────────────────
 initDB()
   .then(() => {
     app.listen(PORT, () => console.log(`✓ Server running on http://localhost:${PORT}`));
