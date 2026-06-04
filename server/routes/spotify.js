@@ -112,7 +112,7 @@ router.get("/spotify/auth", (req, res) => {
     response_type: "code",
     redirect_uri: REDIRECT_URI,
     scope: SCOPES,
-    show_dialog: "false",
+    show_dialog: "true",
   });
 
   res.redirect(`${SPOTIFY_AUTH_URL}?${params.toString()}`);
@@ -190,6 +190,11 @@ router.get("/spotify/now-playing", async (req, res) => {
     if (!response.ok) {
       const errText = await response.text();
       console.error(`Spotify API error: ${response.status}`, errText);
+      if (response.status === 403) {
+        // Clear broken tokens so user must re-authorize
+        await pool.query("DELETE FROM spotify_tokens WHERE id = 1");
+        return res.json({ isPlaying: false, error: "Re-authorize at /api/spotify/auth (token expired)" });
+      }
       return res.json({ isPlaying: false, error: `Spotify API ${response.status}` });
     }
 
