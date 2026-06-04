@@ -120,7 +120,7 @@ const CAT_QUOTES = [
 
 const CAT_CONFIG = {
   id: "cat",
-  name: "THE CAT",
+  name: "AMING",
   startX: 8 * TILE_SIZE,
   startY: 8 * TILE_SIZE,
   speed: 0.8,
@@ -1170,7 +1170,7 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
           ctx.fillStyle = "#f5a060";
           ctx.font = "bold 6px 'Press Start 2P', monospace";
           ctx.textAlign = "center"; ctx.textBaseline = "middle";
-          ctx.fillText("THE CAT", cat.x, cat.y - 22 + catBob);
+          ctx.fillText(CAT_CONFIG.name, cat.x, cat.y - 22 + catBob);
 
           // Speech bubble if active
           const catBubble = catBubbleRef.current;
