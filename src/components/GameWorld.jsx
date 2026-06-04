@@ -86,7 +86,7 @@ const BUILDINGS = [
 const NPCS = [
   {
     id: "scholar",
-    name: "THE SCHOLAR",
+    name: "DENGKEL",
     x: 4.5 * TILE_SIZE,   // just in front of the Library entrance
     y: 5.5 * TILE_SIZE,   // south of the door, not blocking entry
     color: "#7b5ea7",
@@ -115,7 +115,7 @@ const CAT_QUOTES = [
   "Meow? Oh sorry, I thought we were having a conversation.",
   "Cats were worshipped in ancient Egypt. I'm still waiting for my temple.",
   "Pro tip: Try pressing E near buildings. There's cool stuff inside.",
-  "I can jump 6 times my height. The Scholar just uses the stairs."
+  "I can jump 6 times my height. Dengkel just uses the stairs."
 ];
 
 const CAT_CONFIG = {
@@ -1059,7 +1059,7 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
           ctx.fillStyle = "#ffeb60";
           ctx.font = "bold 7px 'Press Start 2P', monospace";
           ctx.textAlign = "center"; ctx.textBaseline = "middle";
-          ctx.fillText("THE SCHOLAR", npc.x, npc.y - 43 + bob);
+          ctx.fillText(NPCS[0].name, npc.x, npc.y - 43 + bob);
         }});
       }
 
