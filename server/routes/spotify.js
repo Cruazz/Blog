@@ -162,10 +162,20 @@ router.get("/spotify/callback", async (req, res) => {
 // ── Step 3: Now Playing — GET /api/spotify/now-playing ──────────────────────
 // Public endpoint — TavernModal fetches from here
 router.get("/spotify/now-playing", async (req, res) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  res.set("Pragma", "no-cache");
+
   try {
+    // Check if credentials are configured
+    if (!CLIENT_ID || !CLIENT_SECRET) {
+      console.warn("Spotify: credentials not configured");
+      return res.json({ isPlaying: false, error: "Spotify not configured on server" });
+    }
+
     const accessToken = await getValidAccessToken();
     if (!accessToken) {
-      return res.json({ isPlaying: false });
+      console.warn("Spotify: no valid access token (authorize at /api/spotify/auth)");
+      return res.json({ isPlaying: false, error: "Not authorized — visit /api/spotify/auth" });
     }
 
     const response = await fetch(SPOTIFY_NOW_PLAYING_URL, {
@@ -173,8 +183,14 @@ router.get("/spotify/now-playing", async (req, res) => {
     });
 
     // 204 = no content (nothing playing)
-    if (response.status === 204 || !response.ok) {
+    if (response.status === 204) {
       return res.json({ isPlaying: false });
+    }
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(`Spotify API error: ${response.status}`, errText);
+      return res.json({ isPlaying: false, error: `Spotify API ${response.status}` });
     }
 
     const data = await response.json();
@@ -194,7 +210,7 @@ router.get("/spotify/now-playing", async (req, res) => {
     });
   } catch (err) {
     console.error("Spotify now-playing error:", err.message);
-    res.json({ isPlaying: false });
+    res.json({ isPlaying: false, error: err.message });
   }
 });
 

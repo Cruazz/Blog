@@ -60,7 +60,7 @@ export function TavernModal({ onClose }) {
   const [statusLoading, setStatusLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API}/spotify/now-playing`)
+    fetch(`${API}/spotify/now-playing`, { cache: "no-store" })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         setSpotify(data);
@@ -127,7 +127,7 @@ export function TavernModal({ onClose }) {
             ) : (
               <div className="tavern-bard-idle">
                 <span className="tavern-bard-icon">🎶</span>
-                <span>The bard is resting... no music playing</span>
+                <span>{spotify?.error ? spotify.error : "The bard is resting... no music playing"}</span>
               </div>
             )}
           </div>
