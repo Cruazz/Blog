@@ -159,6 +159,52 @@ router.get("/spotify/callback", async (req, res) => {
   }
 });
 
+// ── Debug: GET /api/spotify/debug ────────────────────────────────────────────
+// Shows what Spotify API returns WITHOUT deleting the token
+router.get("/spotify/debug", async (req, res) => {
+  try {
+    if (!CLIENT_ID || !CLIENT_SECRET) {
+      return res.json({ error: "Spotify credentials not configured" });
+    }
+
+    const accessToken = await getValidAccessToken();
+    if (!accessToken) {
+      return res.json({ error: "No token — visit /api/spotify/auth first" });
+    }
+
+    // Test the currently-playing endpoint
+    const cpResponse = await fetch(SPOTIFY_NOW_PLAYING_URL, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const cpBody = await cpResponse.text();
+    let cpData;
+    try { cpData = JSON.parse(cpBody); } catch { cpData = cpBody; }
+
+    // Also test the profile endpoint to verify token validity
+    const profileResponse = await fetch("https://api.spotify.com/v1/me", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const profileBody = await profileResponse.text();
+    let profileData;
+    try { profileData = JSON.parse(profileBody); } catch { profileData = profileBody; }
+
+    res.json({
+      tokenPreview: accessToken.substring(0, 20) + "...",
+      currentlyPlaying: {
+        status: cpResponse.status,
+        body: cpData,
+      },
+      profile: {
+        status: profileResponse.status,
+        body: profileData,
+      },
+    });
+  } catch (err) {
+    res.json({ error: err.message });
+  }
+});
+
 // ── Step 3: Now Playing — GET /api/spotify/now-playing ──────────────────────
 // Public endpoint — TavernModal fetches from here
 router.get("/spotify/now-playing", async (req, res) => {
