@@ -3428,6 +3428,22 @@ img {
   margin-top: 1px;
 }
 
+.tavern-bard-subtitle {
+  font-family: var(--font-game-mono);
+  font-size: 12px;
+  color: #8b7355;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+.tavern-bard-art-sm {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
 .tavern-bard-progress {
   height: 5px;
   background: rgba(139,90,43,0.2);

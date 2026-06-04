@@ -9,7 +9,7 @@ import categoriesRouter from "./routes/categories.js";
 import skillsRouter from "./routes/skills.js";
 import projectsRouter from "./routes/projects.js";
 import tavernRouter, { initTavernTable } from "./routes/tavern.js";
-import spotifyRouter, { initSpotifyTable } from "./routes/spotify.js";
+import lastfmRouter from "./routes/lastfm.js";
 
 dotenv.config();
 
@@ -159,10 +159,6 @@ async function initDB() {
   // Init tavern_status table
   await initTavernTable();
   console.log("✓ Tavern status ready");
-
-  // Init spotify_tokens table
-  await initSpotifyTable();
-  console.log("✓ Spotify tokens ready");
 }
 
 // ── Public Routes ─────────────────────────────────────────────────────────────
@@ -175,7 +171,7 @@ app.use("/api", categoriesRouter);
 app.use("/api", skillsRouter);
 app.use("/api", projectsRouter);
 app.use("/api", tavernRouter);
-app.use("/api", spotifyRouter);
+app.use("/api", lastfmRouter);
 
 // ── Start Server ─────────────────────────────────────────────────────────────
 initDB()

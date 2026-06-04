@@ -54,21 +54,21 @@ function ModalWrapper({ title, subtitle, icon, onClose, children }) {
 
 // ── TAVERN MODAL — Now Playing / Status ─────────────────────────────────────
 export function TavernModal({ onClose }) {
-  const [spotify, setSpotify] = useState(null);
-  const [spotifyLoading, setSpotifyLoading] = useState(true);
+  const [lastfm, setLastfm] = useState(null);
+  const [lastfmLoading, setLastfmLoading] = useState(true);
   const [status, setStatus] = useState(null);
   const [statusLoading, setStatusLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API}/spotify/now-playing`, { cache: "no-store" })
+    fetch(`${API}/lastfm/now-playing`, { cache: "no-store" })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        setSpotify(data);
-        setSpotifyLoading(false);
+        setLastfm(data);
+        setLastfmLoading(false);
       })
       .catch(() => {
-        setSpotify(null);
-        setSpotifyLoading(false);
+        setLastfm(null);
+        setLastfmLoading(false);
       });
 
     fetch(`${API}/tavern/status`, { cache: "no-store" })
@@ -98,36 +98,44 @@ export function TavernModal({ onClose }) {
             <span className="tavern-card-title">Bard&apos;s Corner</span>
           </div>
           <div className="tavern-card-body">
-            {spotifyLoading ? (
+            {lastfmLoading ? (
               <div className="tavern-bard-loading">
                 <span className="tavern-bard-icon tavern-bard-spin">🎶</span>
                 <span>Tuning the lute...</span>
               </div>
-            ) : spotify && spotify.isPlaying ? (
+            ) : lastfm && lastfm.isPlaying ? (
               <div className="tavern-bard-active">
                 <div className="tavern-bard-art">
-                  {spotify.albumArt
-                    ? <img src={spotify.albumArt} alt="Album" />
+                  {lastfm.albumArt
+                    ? <img src={lastfm.albumArt} alt="Album" />
                     : <div className="tavern-bard-art-placeholder">🎵</div>}
                 </div>
                 <div className="tavern-bard-info">
-                  <div className="tavern-bard-title">{spotify.title}</div>
-                  <div className="tavern-bard-artist">{spotify.artist}</div>
-                  <div className="tavern-bard-album">{spotify.album}</div>
-                  {spotify.progress !== undefined && (
-                    <div className="tavern-bard-progress">
-                      <div className="tavern-bard-progress-fill" style={{ width: `${(spotify.progress / spotify.duration) * 100}%` }} />
-                    </div>
-                  )}
+                  <div className="tavern-bard-title">{lastfm.title}</div>
+                  <div className="tavern-bard-artist">{lastfm.artist}</div>
+                  {lastfm.album && <div className="tavern-bard-album">{lastfm.album}</div>}
                 </div>
                 <div className="tavern-bard-eq">
                   <span /><span /><span /><span />
                 </div>
               </div>
+            ) : lastfm?.lastPlayed ? (
+              <div className="tavern-bard-idle">
+                <div className="tavern-bard-art tavern-bard-art-sm">
+                  {lastfm.lastPlayed.albumArt
+                    ? <img src={lastfm.lastPlayed.albumArt} alt="Album" />
+                    : <div className="tavern-bard-art-placeholder">🎵</div>}
+                </div>
+                <div className="tavern-bard-info">
+                  <div className="tavern-bard-subtitle">Last played</div>
+                  <div className="tavern-bard-title">{lastfm.lastPlayed.title}</div>
+                  <div className="tavern-bard-artist">{lastfm.lastPlayed.artist}</div>
+                </div>
+              </div>
             ) : (
               <div className="tavern-bard-idle">
                 <span className="tavern-bard-icon">🎶</span>
-                <span>{spotify?.error ? spotify.error : "The bard is resting... no music playing"}</span>
+                <span>{lastfm?.error ? lastfm.error : "The bard is resting... no music playing"}</span>
               </div>
             )}
           </div>
