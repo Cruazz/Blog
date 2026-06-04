@@ -42,6 +42,8 @@ export async function initTavernTable() {
 
 // ── Public: GET /api/tavern/status ───────────────────────────────────────────
 router.get("/tavern/status", async (req, res) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  res.set("Pragma", "no-cache");
   try {
     const { rows } = await pool.query("SELECT data, updated_at FROM tavern_status WHERE id = 1");
     if (rows.length === 0) return res.json(DEFAULT_STATUS);

@@ -71,7 +71,7 @@ export function TavernModal({ onClose }) {
         setSpotifyLoading(false);
       });
 
-    fetch(`${API}/tavern/status`)
+    fetch(`${API}/tavern/status`, { cache: "no-store" })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         setStatus(data || { currently: "...", learning: [], stack: [], mood: "...", hoursToday: "..." });
