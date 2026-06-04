@@ -13,7 +13,7 @@ const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token";
 const SPOTIFY_NOW_PLAYING_URL = "https://api.spotify.com/v1/me/player/currently-playing";
 
 // Scopes needed
-const SCOPES = ["user-read-currently-playing", "user-read-playback-state"].join(" ");
+const SCOPES = ["user-read-currently-playing"].join(" ");
 
 // ── Init table ──────────────────────────────────────────────────────────────
 export async function initSpotifyTable() {
@@ -188,12 +188,16 @@ router.get("/spotify/now-playing", async (req, res) => {
     }
 
     if (!response.ok) {
-      const errText = await response.text();
-      console.error(`Spotify API error: ${response.status}`, errText);
+      const errBody = await response.text();
+      console.error(`Spotify API ${response.status}:`, errBody);
+      // Try to extract error message
+      let errMsg;
+      try { const e = JSON.parse(errBody); errMsg = e.error?.message || e.error; } catch { errMsg = errBody; }
+      console.error("→", errMsg);
+
       if (response.status === 403) {
-        // Clear broken tokens so user must re-authorize
         await pool.query("DELETE FROM spotify_tokens WHERE id = 1");
-        return res.json({ isPlaying: false, error: "Re-authorize at /api/spotify/auth (token expired)" });
+        return res.json({ isPlaying: false, error: `Spotify returned 403: ${errMsg}` });
       }
       return res.json({ isPlaying: false, error: `Spotify API ${response.status}` });
     }
