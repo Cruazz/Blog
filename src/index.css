@@ -136,6 +136,7 @@ body,
 /* Navigation */
 .blog-nav {
   display: flex;
+  height: var(--navbar-height);
   align-items: center;
   justify-content: space-between;
   padding: 1.2rem 2rem;
@@ -1069,8 +1070,8 @@ body,
     position: fixed;
     top: 0;
     right: 0;
-    height: 100dvh;
     height: 100vh; /* fallback */
+    height: var(--viewport-height, 100dvh);
     width: 75%;
     max-width: 320px;
     background: rgba(10, 10, 20, 0.95);
@@ -1695,9 +1696,9 @@ img {
 /* Game screen viewport wrapper */
 .game-screen-wrapper {
   position: relative;
-  width: 100vw;
+  width: 100%;
   height: calc(100vh - var(--navbar-height, 65px));
-  height: calc(100dvh - var(--navbar-height, 65px)); /* dvh accounts for mobile browser chrome */
+  height: calc(var(--viewport-height, 100dvh) - var(--navbar-height, 65px));
   margin-top: var(--navbar-height, 65px);
   overflow: hidden;
   background-color: #2d2d2d;
@@ -1889,6 +1890,8 @@ img {
 }
 
 .game-modal-body {
+  min-height: 0;
+  min-width: 0;
   padding: 24px;
   overflow-y: auto;
   flex: 1;
@@ -2216,7 +2219,7 @@ img {
   /* --- Game screen --- */
   .game-screen-wrapper {
     /* Use dvh so mobile browser chrome is excluded */
-    height: calc(100dvh - var(--navbar-height));
+    height: calc(var(--viewport-height, 100dvh) - var(--navbar-height));
     margin-top: var(--navbar-height);
   }
 
@@ -3679,4 +3682,42 @@ img {
   .tavern-bard-active { flex-wrap: wrap; }
   .tavern-bard-eq { margin-top: 4px; }
   .tavern-quest-meta { flex-direction: column; }
+}
+
+/* Keep content inside the available viewport without clipping long text. */
+.game-modal-content { min-width: 0; }
+.game-modal-header { flex-shrink: 0; gap: 12px; }
+.game-modal-header-left, .game-modal-header-left > div,
+.book-page, .letter-paper-from, .letter-meta-field,
+.editor-grid > div, .tavern-card, .crate-card { min-width: 0; }
+.game-modal-body { overscroll-behavior: contain; overflow-wrap: anywhere; }
+.post-body img, .post-body video, .post-body iframe { max-width: 100%; }
+.post-body img, .post-body video { height: auto; }
+.post-body pre { max-width: 100%; overflow-x: auto; white-space: pre; }
+.post-body table { display: block; max-width: 100%; overflow-x: auto; }
+.game-modal-close, .hamburger, .theme-toggle { min-width: 44px; min-height: 44px; }
+.dpad-btn { touch-action: none; user-select: none; }
+:focus-visible { outline: 3px solid #4facfe; outline-offset: 3px; }
+
+@media (max-width: 1000px) and (min-width: 769px) {
+  .blog-nav { padding-inline: 12px; }
+  .blog-nav-links { gap: 10px; }
+  .blog-nav-links a { font-size: 14px; letter-spacing: 0; }
+}
+@media (max-width: 768px) {
+  .blog-nav-links { visibility: hidden; pointer-events: none; padding: 72px 24px 24px; gap: 20px; }
+  .blog-nav-links.open { visibility: visible; pointer-events: auto; }
+  .light .blog-nav-links { background: #f6eedb; }
+  .game-modal-content { max-height: 100%; }
+  .game-modal-body { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+  .game-footer-banner { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+  .virtual-dpad { bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .dpad-btn { width: 44px; height: 44px; }
+  .editor-grid { grid-template-columns: minmax(0, 1fr); }
+  .editor-grid > div { grid-column: 1 / -1 !important; }
+  .editor-input, .letter-field, .letter-select { min-width: 0; font-size: 16px; }
+  .admin-tabs { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }

@@ -15,9 +15,12 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+app.disable('x-powered-by');
+// Set only to the number of trusted reverse proxies in the deployment.
+if (process.env.TRUST_PROXY_HOPS) app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS));
 
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", /\.vercel\.app$/, "https://cruaz.my.id", "https://www.cruaz.my.id"]
+  origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "https://cruaz.my.id", "https://www.cruaz.my.id", ...(process.env.CORS_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean)]
 }));
 app.use(express.json());
 
@@ -172,6 +175,16 @@ app.use("/api", skillsRouter);
 app.use("/api", projectsRouter);
 app.use("/api", tavernRouter);
 app.use("/api", lastfmRouter);
+
+app.use((err, _req, res, _next) => {
+  if (err.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ error: 'Image must be 5 MB or smaller.' });
+  if (err.name === 'MulterError') return res.status(400).json({ error: 'Upload one image only.' });
+  if (err.status === 415) return res.status(415).json({ error: err.message });
+  if (err.type === 'entity.parse.failed') return res.status(400).json({ error: 'Invalid JSON.' });
+  if (err.type === 'entity.too.large') return res.status(413).json({ error: 'Request is too large.' });
+  console.error('Request failed:', err.message);
+  res.status(500).json({ error: 'Server error' });
+});
 
 // ── Start Server ─────────────────────────────────────────────────────────────
 initDB()

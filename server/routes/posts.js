@@ -13,7 +13,16 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 0 },
+  fileFilter: (_req, file, cb) => {
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.mimetype)) {
+      return cb(Object.assign(new Error('Use a JPEG, PNG, WebP, or GIF image.'), { status: 415 }));
+    }
+    cb(null, true);
+  },
+});
 
 // ── Public Routes ────────────────────────────────────────────────────────────
 router.get("/posts", async (req, res) => {
@@ -104,7 +113,7 @@ router.post("/admin/upload", auth, upload.single("image"), async (req, res) => {
     const streamUpload = (fileBuffer) => {
       return new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
-          { folder: "blog_uploads" },
+          { folder: "blog_uploads", resource_type: 'image', allowed_formats: ['jpg', 'png', 'webp', 'gif'] },
           (error, result) => {
             if (result) resolve(result);
             else reject(error);

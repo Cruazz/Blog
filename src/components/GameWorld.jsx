@@ -206,7 +206,7 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
     dir: "down",
     isMoving: false,
     state: "idle", // "idle" or "walking"
-    stateTimer: Date.now() + 2000,
+    stateTimer: 0,
     targetX: CAT_CONFIG.startX,
     targetY: CAT_CONFIG.startY,
     walkCycle: 0,
@@ -218,19 +218,23 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
   const [interactPrompt, setInteractPrompt] = useState(null); // { type: "building"|"npc", ...data }
   const [viewport, setViewport] = useState({ w: 800, h: 600 });
   const viewportRef = useRef(viewport);
-  viewportRef.current = viewport;
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  useEffect(() => { viewportRef.current = viewport; }, [viewport]);
+  const [isTouchDevice] = useState(() => 'ontouchstart' in window || navigator.maxTouchPoints > 0);
 
   useEffect(() => {
-    setIsTouchDevice("ontouchstart" in window || navigator.maxTouchPoints > 0);
+    catRef.current.stateTimer = Date.now() + 2000;
     const handleResize = () => {
       if (containerRef.current) {
         setViewport({ w: containerRef.current.clientWidth, h: containerRef.current.clientHeight });
       }
     };
-    handleResize();
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    const observer = new ResizeObserver(handleResize);
+    if (containerRef.current) observer.observe(containerRef.current);
+    const resetKeys = () => { keysRef.current = {}; };
+    window.addEventListener("blur", resetKeys);
+    document.addEventListener("visibilitychange", resetKeys);
+    return () => { observer.disconnect(); window.removeEventListener("resize", handleResize); window.removeEventListener("blur", resetKeys); document.removeEventListener("visibilitychange", resetKeys); };
   }, []);
 
   const catBubbleTimerRef = useRef(null);
@@ -249,6 +253,7 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
 
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (activeModal || /INPUT|TEXTAREA|SELECT|BUTTON/.test(e.target.tagName)) return;
       const k = e.key.toLowerCase();
       keysRef.current[k] = true;
       if (k === "e" && interactPrompt && !activeModal) {
@@ -268,6 +273,7 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
 
   useEffect(() => {
     let animId;
+    keysRef.current = {};
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -1362,13 +1368,6 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
     }
   };
 
-  const promptLabel = interactPrompt
-    ? (interactPrompt.type === "building"
-        ? `press [E] to enter THE ${interactPrompt.name}`
-        : interactPrompt.type === "cat"
-          ? `press [E] to pet the cat`
-          : `press [E] to talk to ${interactPrompt.name}`)
-    : null;
 
   return (
     <div className="game-world-container" ref={containerRef}>
@@ -1396,24 +1395,24 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
                 : `talk to ${interactPrompt.name}`}
           </span>
         ) : (
-          <span className="explore-message">use WASD / arrow keys to explore the village</span>
+          <span className="explore-message">{isTouchDevice ? "Use the arrow buttons to explore; tap E to interact" : "Use WASD / arrow keys to explore the village"}</span>
         )}
       </div>
 
-      {isTouchDevice && (
+      {isTouchDevice && !activeModal && (
         <div className="virtual-dpad">
           <div className="dpad-row">
-            <button className="dpad-btn dpad-up" onTouchStart={() => handleTouchStart("arrowup")} onTouchEnd={() => handleTouchEnd("arrowup")}>▲</button>
+            <button className="dpad-btn dpad-up" aria-label="Move up" onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); handleTouchStart("arrowup"); }} onPointerUp={() => handleTouchEnd("arrowup")} onPointerCancel={() => handleTouchEnd("arrowup")} onLostPointerCapture={() => handleTouchEnd("arrowup")}>▲</button>
           </div>
           <div className="dpad-row">
-            <button className="dpad-btn dpad-left" onTouchStart={() => handleTouchStart("arrowleft")} onTouchEnd={() => handleTouchEnd("arrowleft")}>◀</button>
+            <button className="dpad-btn dpad-left" aria-label="Move left" onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); handleTouchStart("arrowleft"); }} onPointerUp={() => handleTouchEnd("arrowleft")} onPointerCancel={() => handleTouchEnd("arrowleft")} onLostPointerCapture={() => handleTouchEnd("arrowleft")}>◀</button>
             {interactPrompt
               ? <button className="dpad-btn dpad-action" onClick={handleActionClick}>E</button>
               : <div className="dpad-btn dpad-spacer" />}
-            <button className="dpad-btn dpad-right" onTouchStart={() => handleTouchStart("arrowright")} onTouchEnd={() => handleTouchEnd("arrowright")}>▶</button>
+            <button className="dpad-btn dpad-right" aria-label="Move right" onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); handleTouchStart("arrowright"); }} onPointerUp={() => handleTouchEnd("arrowright")} onPointerCancel={() => handleTouchEnd("arrowright")} onLostPointerCapture={() => handleTouchEnd("arrowright")}>▶</button>
           </div>
           <div className="dpad-row">
-            <button className="dpad-btn dpad-down" onTouchStart={() => handleTouchStart("arrowdown")} onTouchEnd={() => handleTouchEnd("arrowdown")}>▼</button>
+            <button className="dpad-btn dpad-down" aria-label="Move down" onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); handleTouchStart("arrowdown"); }} onPointerUp={() => handleTouchEnd("arrowdown")} onPointerCancel={() => handleTouchEnd("arrowdown")} onLostPointerCapture={() => handleTouchEnd("arrowdown")}>▼</button>
           </div>
         </div>
       )}

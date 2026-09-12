@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import DOMPurify from "dompurify";
+import { useState, useEffect, useRef, useId } from "react";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+const API = import.meta.env.VITE_API_URL || "/api";
 
 const Loader = () => (
   <div className="loading-dots"><span></span><span></span><span></span></div>
@@ -33,18 +34,39 @@ const Icons = {
 
 // ── Common Modal Wrapper ─────────────────────────────────────────────────────
 function ModalWrapper({ title, subtitle, icon, onClose, children }) {
+  const dialogRef = useRef(null);
+  const titleId = useId();
+  useEffect(() => {
+    const previous = document.activeElement;
+    dialogRef.current?.focus();
+    return () => { if (previous?.isConnected) previous.focus(); };
+  }, []);
+  function handleKeyDown(event) {
+    if (event.key === 'Escape') { event.stopPropagation(); onClose(); }
+    if (event.key !== 'Tab') return;
+    const elements = [...dialogRef.current.querySelectorAll('a[href], button, input, select, textarea, [tabindex="0"]')]
+      .filter(el => !el.disabled && el.getClientRects().length);
+    const first = elements[0];
+    const last = elements.at(-1);
+    if (!first) { event.preventDefault(); return; }
+    if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) {
+      event.preventDefault(); last.focus();
+    } else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialogRef.current)) {
+      event.preventDefault(); first.focus();
+    }
+  }
   return (
     <div className="game-modal-overlay">
-      <div className="game-modal-content">
+      <div className="game-modal-content" ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} onKeyDown={handleKeyDown}>
         <div className="game-modal-header">
           <div className="game-modal-header-left">
             {icon && <span className="game-modal-icon">{icon}</span>}
             <div>
-              <h2 className="game-modal-title">{title}</h2>
+              <h2 className="game-modal-title" id={titleId}>{title}</h2>
               {subtitle && <p className="game-modal-subtitle">{subtitle}</p>}
             </div>
           </div>
-          <button className="game-modal-close" onClick={onClose}>✕</button>
+          <button className="game-modal-close" aria-label="Close dialog" onClick={onClose}>✕</button>
         </div>
         <div className="game-modal-body">{children}</div>
       </div>
@@ -261,7 +283,7 @@ export function TavernModal({ onClose }) {
 }
 
 // ── LIBRARY MODAL — Scroll Picker ────────────────────────────────────────────
-export function LibraryModal({ posts, categories, loading, onClose, initialActivePost = null, onOpenPost, onBackToList }) {
+export function LibraryModal({ posts, categories, loading, error, onRetry, onClose, initialActivePost = null, onOpenPost, onBackToList }) {
   const [activePost, setActivePost] = useState(initialActivePost);
   const [query, setQuery] = useState("");
   const [tag, setTag] = useState("all");
@@ -309,7 +331,7 @@ export function LibraryModal({ posts, categories, loading, onClose, initialActiv
                 <span className="post-byline">Cruaz · {formatDate(activePost.created_at)}</span>
               </div>
               {activePost.image_url && <img src={activePost.image_url} alt="" className="post-hero-image" />}
-              <div className="post-body" dangerouslySetInnerHTML={{ __html: activePost.body }} />
+              <div className="post-body" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(activePost.body, { USE_PROFILES: { html: true }, FORBID_TAGS: ["style", "form", "input", "button"], FORBID_ATTR: ["style"] }) }} />
             </div>
             <div className="scroll-rod scroll-rod-bottom" />
           </div>
@@ -338,7 +360,7 @@ export function LibraryModal({ posts, categories, loading, onClose, initialActiv
 
       {/* Scroll shelf */}
       <div className="scroll-shelf">
-        {loading ? <Loader /> : filteredPosts.length === 0 ? (
+        {loading ? <Loader /> : error ? <div role="alert"><p>{error}</p><button className="scroll-back-btn" onClick={onRetry}>Try again</button></div> : filteredPosts.length === 0 ? (
           <div className="scroll-empty">No scrolls found.</div>
         ) : filteredPosts.map((p, i) => (
           <div
@@ -683,16 +705,6 @@ export function PostOfficeModal({ onClose }) {
   );
 }
 
-// ── OBSERVATORY MODAL — Constellation Map ────────────────────────────────────
-export function ObservatoryModal({ onClose }) {
-  const canvasRef = useRef(null);
-  const [skills, setSkills] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [hovered, setHovered] = useState(null);
-  const animRef = useRef(null);
-  const starsRef = useRef([]);
-  const canvasSizeRef = useRef({ w: 800, h: 420 });
-
   // Skill categories with constellation groupings
   const CATEGORIES = [
     { id: "frontend",  label: "Frontend",   color: "#4facfe", cx: 0.22, cy: 0.30 },
@@ -715,6 +727,17 @@ export function ObservatoryModal({ onClose }) {
     }
     return "tools";
   }
+
+
+// ── OBSERVATORY MODAL — Constellation Map ────────────────────────────────────
+export function ObservatoryModal({ onClose }) {
+  const canvasRef = useRef(null);
+  const [skills, setSkills] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [hovered, setHovered] = useState(null);
+  const animRef = useRef(null);
+  const starsRef = useRef([]);
+  const canvasSizeRef = useRef({ w: 800, h: 420 });
 
   useEffect(() => {
     fetch(`${API}/skills`)
@@ -951,7 +974,8 @@ export function ObservatoryModal({ onClose }) {
 // ── SCHOLAR DIALOGUE MODAL ───────────────────────────────────────────────────
 export function ScholarModal({ posts, onClose, onOpenPost }) {
   const [step, setStep] = useState(0);
-  const [recommended, setRecommended] = useState(null);
+  const [recommendationIndex] = useState(() => Math.random());
+  const recommended = posts?.length ? posts[Math.floor(recommendationIndex * posts.length)] : null;
 
   const dialogue = [
     "Greetings, traveller! I am the Scholar of this village.",
@@ -959,15 +983,6 @@ export function ScholarModal({ posts, onClose, onOpenPost }) {
     "Let me recommend something for your journey.",
   ];
 
-  useEffect(() => {
-    if (posts && posts.length > 0) {
-      // Pick a random published post
-      const pick = posts[Math.floor(Math.random() * posts.length)];
-      setRecommended(pick);
-    }
-  }, [posts]);
-
-  const isLastDialogue = step === dialogue.length - 1;
 
   return (
     <div className="game-modal-overlay">

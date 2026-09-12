@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret_change_me";
+import { JWT_SECRET } from '../config.js';
 
 export function auth(req, res, next) {
   const header = req.headers.authorization;
@@ -9,7 +9,7 @@ export function auth(req, res, next) {
   }
   
   try {
-    req.admin = jwt.verify(header.slice(7), JWT_SECRET);
+    req.admin = jwt.verify(header.slice(7), JWT_SECRET, { algorithms: ['HS256'] });
     next();
   } catch {
     res.status(401).json({ error: "Invalid token" });

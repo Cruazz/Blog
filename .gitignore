@@ -34,3 +34,4 @@ src/assets/vite.svg
 src/App.css
 
 scratch/
+.npm-cache/

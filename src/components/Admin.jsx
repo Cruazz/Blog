@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+const API = import.meta.env.VITE_API_URL || "/api";
 
 function slugify(str) {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -22,16 +22,18 @@ export function SettingsPanel({ token, categories, onCategoriesChange }) {
   const [newCatName, setNewCatName] = useState("");
   const [skills, setSkills] = useState([]);
   const [newSkill, setNewSkill] = useState("");
-  const h = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+  const h = useMemo(() => ({ "Content-Type": "application/json", Authorization: `Bearer ${token}` }), [token]);
 
-  useEffect(() => { loadSkills(); }, []);
-
-  async function loadSkills() {
+  const loadSkills = useCallback(async () => {
     try {
       const res = await fetch(`${API}/admin/skills`, { headers: h });
       if (res.ok) setSkills(await res.json());
-    } catch { }
-  }
+    } catch { /* Keep the current data when the request fails. */ }
+  }, [h]);
+
+  // Loader state updates follow awaited network responses, not synchronous effect work.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { loadSkills(); }, [loadSkills]);
 
   async function addCategory() {
     if (!newCatName.trim()) return;
@@ -105,16 +107,18 @@ export function ProjectsAdmin({ token, handleUpload }) {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
-  const h = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+  const h = useMemo(() => ({ "Content-Type": "application/json", Authorization: `Bearer ${token}` }), [token]);
 
-  useEffect(() => { load(); }, []);
-
-  async function load() {
+  const load = useCallback(async () => {
     try {
       const res = await fetch(`${API}/admin/projects`, { headers: h });
       if (res.ok) setProjects(await res.json());
-    } catch { }
-  }
+    } catch { /* Keep the current data when the request fails. */ }
+  }, [h]);
+
+  // Loader state updates follow awaited network responses, not synchronous effect work.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { load(); }, [load]);
 
   async function save() {
     setSaving(true); setMsg("");
@@ -250,11 +254,9 @@ export function TavernAdmin({ token }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
-  const h = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+  const h = useMemo(() => ({ "Content-Type": "application/json", Authorization: `Bearer ${token}` }), [token]);
 
-  useEffect(() => { load(); }, []);
-
-  async function load() {
+  const load = useCallback(async () => {
     try {
       const res = await fetch(`${API}/admin/tavern/status`, { headers: h });
       if (res.ok) {
@@ -267,9 +269,13 @@ export function TavernAdmin({ token }) {
           hoursToday: data.hoursToday || "",
         });
       }
-    } catch { }
+    } catch { /* Keep the current data when the request fails. */ }
     finally { setLoading(false); }
-  }
+  }, [h]);
+
+  // Loader state updates follow awaited network responses, not synchronous effect work.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { load(); }, [load]);
 
   async function save() {
     setSaving(true); setMsg("");
@@ -436,15 +442,17 @@ export function AdminPanel({ token, onLogout, onPostsChange, categories, onCateg
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
   const [tab, setTab] = useState("posts");
-  const h = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+  const h = useMemo(() => ({ "Content-Type": "application/json", Authorization: `Bearer ${token}` }), [token]);
 
-  useEffect(() => { load(); }, []);
-
-  async function load() {
+  const load = useCallback(async () => {
     const res = await fetch(`${API}/admin/posts`, { headers: h });
     if (res.status === 401) { onLogout(); return; }
     setPosts(await res.json());
-  }
+  }, [h, onLogout]);
+
+  // Loader state updates follow awaited network responses, not synchronous effect work.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { load(); }, [load]);
 
   async function save() {
     setSaving(true); setMsg("");

@@ -4,7 +4,7 @@ const router = express.Router();
 
 const LASTFM_API_KEY = process.env.LASTFM_API_KEY;
 const LASTFM_USER = process.env.LASTFM_USER || "cruaz";
-const LASTFM_URL = `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${LASTFM_USER}&api_key=${LASTFM_API_KEY}&format=json&limit=1`;
+const LASTFM_URL = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${LASTFM_USER}&api_key=${LASTFM_API_KEY}&format=json&limit=1`;
 
 // ── Public: GET /api/lastfm/now-playing ──────────────────────────────────────
 router.get("/lastfm/now-playing", async (req, res) => {
@@ -16,7 +16,7 @@ router.get("/lastfm/now-playing", async (req, res) => {
   }
 
   try {
-    const response = await fetch(LASTFM_URL);
+    const response = await fetch(LASTFM_URL, { signal: AbortSignal.timeout(8000) });
 
     if (!response.ok) {
       const errText = await response.text();
@@ -58,7 +58,7 @@ router.get("/lastfm/now-playing", async (req, res) => {
     });
   } catch (err) {
     console.error("Last.fm fetch error:", err.message);
-    res.json({ isPlaying: false, error: err.message });
+    res.json({ isPlaying: false, error: "Music status is temporarily unavailable" });
   }
 });
 

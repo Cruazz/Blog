@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useEffectEvent } from "react";
 import GameWorld from "./components/GameWorld.jsx";
 import {
   LibraryModal,
@@ -11,7 +11,7 @@ import {
 } from "./components/Modals.jsx";
 import { AdminLogin, AdminPanel } from "./components/Admin.jsx";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+const API = import.meta.env.VITE_API_URL || "/api";
 
 const Loader = () => (
   <div className="loading-dots">
@@ -38,12 +38,12 @@ function Nav({ page, setPage, light, setLight, token, onLogout }) {
   };
 
   return (
-    <nav className="blog-nav">
+    <nav className="blog-nav" aria-label="Main navigation" onKeyDown={e => { if (e.key === 'Escape') setMenuOpen(false); }}>
       <a href="/" className="blog-nav-logo" onClick={(e) => handlePageChange(e, "home")}>
         Cruaz
       </a>
 
-      <ul className={`blog-nav-links${menuOpen ? " open" : ""}`}>
+      <ul id="main-navigation" className={`blog-nav-links${menuOpen ? " open" : ""}`}>
         {links.map(l => (
           <li key={l.id}>
             <a
@@ -71,11 +71,11 @@ function Nav({ page, setPage, light, setLight, token, onLogout }) {
 
       <div className="nav-actions">
         {token && <button className="theme-toggle" onClick={onLogout}>Log out</button>}
-        <button className="theme-toggle" onClick={() => setLight(v => !v)}>
+        <button className="theme-toggle" aria-label={light ? 'Switch to night theme' : 'Switch to day theme'} onClick={() => setLight(v => !v)}>
           <span className="theme-toggle-icon">{light ? "☾" : "☀"}</span>
           <span className="theme-toggle-text">{light ? " Night" : " Day"}</span>
         </button>
-        <button className={`hamburger${menuOpen ? " open" : ""}`} onClick={() => setMenuOpen(!menuOpen)}>
+        <button aria-label={menuOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={menuOpen} aria-controls="main-navigation" className={`hamburger${menuOpen ? " open" : ""}`} onClick={() => setMenuOpen(!menuOpen)}>
           <span></span><span></span><span></span>
         </button>
       </div>
@@ -96,15 +96,15 @@ export default function App() {
 
   const [light, setLight] = useState(() => localStorage.getItem("blog_theme") === "light");
   const [activePost, setActivePost] = useState(null);
-  const [scholarPost, setScholarPost] = useState(null); // post recommended by scholar
+  const [, setScholarPost] = useState(null); // post recommended by scholar
   const scholarPostRef = useRef(null); // ref so LibraryModal reads it synchronously at mount
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [postsError, setPostsError] = useState('');
   const [token, setToken] = useState(() => localStorage.getItem("blog_token"));
   const [categories, setCategories] = useState([]);
 
-  useEffect(() => {
-    const handleLocation = (allPosts = posts) => {
+  const handleLocation = useEffectEvent((allPosts = posts) => {
       const path = window.location.pathname.slice(1); // e.g. "" or "blog" or "blog/slug"
       if (!path || path === "home") {
         setPage("home");
@@ -136,8 +136,9 @@ export default function App() {
           setPage("home"); // Fallback
         }
       }
-    };
+  });
 
+  useEffect(() => {
     fetchPosts().then(allPosts => {
       handleLocation(allPosts);
     });
@@ -152,14 +153,33 @@ export default function App() {
     localStorage.setItem("blog_theme", light ? "light" : "dark");
   }, [light]);
 
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const syncHeight = () => {
+      // Preserve pinch zoom while accounting for the on-screen keyboard.
+      if (viewport.scale === 1) document.documentElement.style.setProperty('--viewport-height', `${viewport.height}px`);
+    };
+    syncHeight();
+    viewport.addEventListener('resize', syncHeight);
+    return () => {
+      viewport.removeEventListener('resize', syncHeight);
+      document.documentElement.style.removeProperty('--viewport-height');
+    };
+  }, []);
+
   async function fetchPosts() {
+    setLoading(true);
+    setPostsError('');
     try {
       const res = await fetch(`${API}/posts`);
+      if (!res.ok) throw new Error('Failed to load posts');
       const data = await res.json();
       const allPosts = Array.isArray(data) ? data : [];
       setPosts(allPosts);
       return allPosts;
     } catch {
+      setPostsError('The library could not load. Please try again.');
       setPosts([]);
       return [];
     } finally {
@@ -264,6 +284,8 @@ export default function App() {
               posts={posts}
               categories={categories}
               loading={loading}
+              error={postsError}
+              onRetry={fetchPosts}
               initialActivePost={scholarPostRef.current}
               onOpenPost={(post) => { scholarPostRef.current = null; setScholarPost(null); setActivePost(post); setPage("post"); const path = `/blog/${post.slug}`; if (window.location.pathname !== path) window.history.pushState({}, "", path); }}
               onBackToList={() => { scholarPostRef.current = null; setScholarPost(null); }}
@@ -277,6 +299,8 @@ export default function App() {
               posts={posts}
               categories={categories}
               loading={loading}
+              error={postsError}
+              onRetry={fetchPosts}
               initialActivePost={activePost}
               onOpenPost={(post) => { setActivePost(post); const path = `/blog/${post.slug}`; if (window.location.pathname !== path) window.history.pushState({}, "", path); }}
               onBackToList={() => { setActivePost(null); setPage("blog"); window.history.pushState({}, "", "/blog"); }}
