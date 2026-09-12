@@ -3801,3 +3801,27 @@ img {
   .reader-section .post-body { font-size: 16px; }
   .reader-section .library-controls { flex-direction: column; }
 }
+
+/* Reading tools stay within the article's own scrolling surface. */
+.reading-mode { overflow-x: clip; }
+.article-tools {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  margin: 16px 0 24px;
+  padding: 10px 12px;
+  border: 1px solid #8d6428;
+  border-radius: 4px;
+  color: #382510;
+  background: #f5ead0;
+  font: 14px/1.5 Inter, sans-serif;
+}
+.article-progress-row { display: flex; justify-content: space-between; gap: 12px; }
+.article-tools progress { display: block; width: 100%; height: 6px; margin-top: 6px; accent-color: #8d6428; }
+.article-toc summary { cursor: pointer; padding-top: 10px; min-height: 44px; }
+.article-toc nav { display: flex; flex-direction: column; max-height: 30vh; overflow-y: auto; overscroll-behavior: contain; }
+.article-toc a { display: block; padding: 10px 8px; min-height: 44px; color: inherit; text-decoration: none; overflow-wrap: anywhere; }
+.article-toc a:hover, .article-toc a[aria-current="location"] { text-decoration: underline; background: rgba(141, 100, 40, .15); }
+.article-toc .toc-subsection { padding-left: 24px; }
+.reader-section .article-tools { top: calc(var(--navbar-height) + 56px); background: #161c2d; color: #ebdcb9; }
+.light .reader-section .article-tools { background: #f6eedb; color: #382510; }

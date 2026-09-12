@@ -1,4 +1,4 @@
-import DOMPurify from "dompurify";
+import ArticleBody from './ArticleBody.jsx';
 import { useState, useEffect, useRef, useId, useContext } from "react";
 import { ReadingModeContext } from '../ReadingModeContext.js';
 
@@ -48,7 +48,7 @@ function ModalWrapper({ title, subtitle, icon, onClose, children }) {
     if (readingMode) return;
     if (event.key === 'Escape') { event.stopPropagation(); onClose(); }
     if (event.key !== 'Tab') return;
-    const elements = [...dialogRef.current.querySelectorAll('a[href], button, input, select, textarea, [tabindex="0"]')]
+    const elements = [...dialogRef.current.querySelectorAll('a[href], button, input, select, textarea, summary, [tabindex="0"]')]
       .filter(el => !el.disabled && el.getClientRects().length);
     const first = elements[0];
     const last = elements.at(-1);
@@ -336,7 +336,7 @@ export function LibraryModal({ posts, categories, loading, error, onRetry, onClo
                 <span className="post-byline">Cruaz · {formatDate(activePost.created_at)}</span>
               </div>
               {activePost.image_url && <img src={activePost.image_url} alt="" className="post-hero-image" />}
-              <div className="post-body" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(activePost.body, { USE_PROFILES: { html: true }, FORBID_TAGS: ["style", "form", "input", "button"], FORBID_ATTR: ["style"] }) }} />
+              <ArticleBody html={activePost.body} />
             </div>
             <div className="scroll-rod scroll-rod-bottom" />
           </div>

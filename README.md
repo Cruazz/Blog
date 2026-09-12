@@ -59,3 +59,7 @@ Use **Read blog** below the navigation to read without the game canvas. Search,
 categories, article URLs, and browser Back work in both views. The browser saves
 the selected view; **Explore village** returns to the map. No extra dependency is
 needed for reading mode.
+
+Articles include a scroll progress bar and a collapsible table of contents when
+they contain at least two H2/H3 headings. These work in both reading mode and the
+village modal, including keyboard navigation and reduced-motion preferences.
