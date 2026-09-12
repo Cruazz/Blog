@@ -1,5 +1,6 @@
 import DOMPurify from "dompurify";
-import { useState, useEffect, useRef, useId } from "react";
+import { useState, useEffect, useRef, useId, useContext } from "react";
+import { ReadingModeContext } from '../ReadingModeContext.js';
 
 const API = import.meta.env.VITE_API_URL || "/api";
 
@@ -34,14 +35,17 @@ const Icons = {
 
 // ── Common Modal Wrapper ─────────────────────────────────────────────────────
 function ModalWrapper({ title, subtitle, icon, onClose, children }) {
+  const readingMode = useContext(ReadingModeContext);
   const dialogRef = useRef(null);
   const titleId = useId();
   useEffect(() => {
+    if (readingMode) return;
     const previous = document.activeElement;
     dialogRef.current?.focus();
     return () => { if (previous?.isConnected) previous.focus(); };
-  }, []);
+  }, [readingMode]);
   function handleKeyDown(event) {
+    if (readingMode) return;
     if (event.key === 'Escape') { event.stopPropagation(); onClose(); }
     if (event.key !== 'Tab') return;
     const elements = [...dialogRef.current.querySelectorAll('a[href], button, input, select, textarea, [tabindex="0"]')]
@@ -56,8 +60,8 @@ function ModalWrapper({ title, subtitle, icon, onClose, children }) {
     }
   }
   return (
-    <div className="game-modal-overlay">
-      <div className="game-modal-content" ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} onKeyDown={handleKeyDown}>
+    <div className={readingMode ? 'reader-section' : 'game-modal-overlay'}>
+      <div className="game-modal-content" ref={dialogRef} role={readingMode ? 'main' : 'dialog'} aria-modal={readingMode ? undefined : true} aria-labelledby={titleId} tabIndex={-1} onKeyDown={handleKeyDown}>
         <div className="game-modal-header">
           <div className="game-modal-header-left">
             {icon && <span className="game-modal-icon">{icon}</span>}
@@ -66,7 +70,7 @@ function ModalWrapper({ title, subtitle, icon, onClose, children }) {
               {subtitle && <p className="game-modal-subtitle">{subtitle}</p>}
             </div>
           </div>
-          <button className="game-modal-close" aria-label="Close dialog" onClick={onClose}>✕</button>
+          {!readingMode && <button className="game-modal-close" aria-label="Close dialog" onClick={onClose}>✕</button>}
         </div>
         <div className="game-modal-body">{children}</div>
       </div>
@@ -284,6 +288,7 @@ export function TavernModal({ onClose }) {
 
 // ── LIBRARY MODAL — Scroll Picker ────────────────────────────────────────────
 export function LibraryModal({ posts, categories, loading, error, onRetry, onClose, initialActivePost = null, onOpenPost, onBackToList }) {
+  const readingMode = useContext(ReadingModeContext);
   const [activePost, setActivePost] = useState(initialActivePost);
   const [query, setQuery] = useState("");
   const [tag, setTag] = useState("all");
@@ -317,10 +322,10 @@ export function LibraryModal({ posts, categories, loading, error, onRetry, onClo
 
   if (activePost) {
     return (
-      <ModalWrapper title="The Library" subtitle="Reading scroll..." icon="📜" onClose={onClose}>
+      <ModalWrapper title={readingMode ? 'Blog' : 'The Library'} subtitle={readingMode ? null : 'Reading scroll...'} icon="📜" onClose={onClose}>
         <div className="scroll-reading-view">
           <button className="scroll-back-btn" onClick={backToList}>
-            ← Back to shelves
+            {readingMode ? '← All articles' : '← Back to shelves'}
           </button>
           <div className="scroll-open-paper">
             <div className="scroll-rod scroll-rod-top" />
@@ -341,19 +346,20 @@ export function LibraryModal({ posts, categories, loading, error, onRetry, onClo
   }
 
   return (
-    <ModalWrapper title="The Library" subtitle="Choose a scroll to read." icon="📚" onClose={onClose}>
+    <ModalWrapper title={readingMode ? 'Blog' : 'The Library'} subtitle={readingMode ? 'Web development, data, and things I am building.' : 'Choose a scroll to read.'} icon="📚" onClose={onClose}>
       {/* Search & filter bar */}
       <div className="library-controls">
         <input
           className="search-input"
           type="text"
-          placeholder="Search scrolls…"
+          placeholder={readingMode ? 'Search articles…' : 'Search scrolls…'}
+          aria-label="Search articles"
           value={query}
           onChange={e => setQuery(e.target.value)}
         />
         <div className="tag-filters-container">
           {tags.map(t => (
-            <button key={t} className={`tag-filter${tag === t ? " active" : ""}`} onClick={() => setTag(t)}>{t}</button>
+            <button key={t} aria-pressed={tag === t} className={`tag-filter${tag === t ? " active" : ""}`} onClick={() => setTag(t)}>{t}</button>
           ))}
         </div>
       </div>
@@ -361,12 +367,18 @@ export function LibraryModal({ posts, categories, loading, error, onRetry, onClo
       {/* Scroll shelf */}
       <div className="scroll-shelf">
         {loading ? <Loader /> : error ? <div role="alert"><p>{error}</p><button className="scroll-back-btn" onClick={onRetry}>Try again</button></div> : filteredPosts.length === 0 ? (
-          <div className="scroll-empty">No scrolls found.</div>
+          <div className="scroll-empty">{readingMode ? 'No articles found. Try another search or category.' : 'No scrolls found.'}</div>
         ) : filteredPosts.map((p, i) => (
-          <div
+          <a
             key={p.id}
+            href={`/blog/${p.slug}`}
             className="scroll-item"
-            onClick={() => openPost(p)}
+            onClick={event => {
+              if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+              event.preventDefault();
+              openPost(p);
+              if (readingMode) window.scrollTo(0, 0);
+            }}
             style={{ animationDelay: `${i * 0.05}s` }}
           >
             <div className="scroll-roll-icon">📜</div>
@@ -377,7 +389,7 @@ export function LibraryModal({ posts, categories, loading, error, onRetry, onClo
               {p.excerpt && <div className="scroll-item-excerpt">{p.excerpt}</div>}
             </div>
             <div className="scroll-item-arrow">▶</div>
-          </div>
+          </a>
         ))}
       </div>
     </ModalWrapper>

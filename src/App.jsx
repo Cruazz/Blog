@@ -10,6 +10,7 @@ import {
   TavernModal
 } from "./components/Modals.jsx";
 import { AdminLogin, AdminPanel } from "./components/Admin.jsx";
+import { ReadingModeContext } from './ReadingModeContext.js';
 
 const API = import.meta.env.VITE_API_URL || "/api";
 
@@ -103,6 +104,18 @@ export default function App() {
   const [postsError, setPostsError] = useState('');
   const [token, setToken] = useState(() => localStorage.getItem("blog_token"));
   const [categories, setCategories] = useState([]);
+  const [readingMode, setReadingMode] = useState(() => {
+    try { return localStorage.getItem('blog_reading_mode') === 'true'; }
+    catch { return false; }
+  });
+
+  function changeMode(reading) {
+    setReadingMode(reading);
+    try { localStorage.setItem('blog_reading_mode', String(reading)); }
+    catch { /* The mode still works when browser storage is unavailable. */ }
+    if (reading && !['blog', 'post'].includes(page)) go('blog');
+    if (!reading) go('home');
+  }
 
   const handleLocation = useEffectEvent((allPosts = posts) => {
       const path = window.location.pathname.slice(1); // e.g. "" or "blog" or "blog/slug"
@@ -237,11 +250,15 @@ export default function App() {
   };
 
   return (
-    <div className={`blog-root${light ? " light" : ""}`}>
+    <ReadingModeContext.Provider value={readingMode}>
+    <div className={`blog-root${light ? " light" : ""}${readingMode ? ' reading-mode' : ''}`}>
       {/* HUD navigation styled top bar */}
       <Nav
-        page={page}
-        setPage={go}
+        page={readingMode && page === 'home' ? 'blog' : page}
+        setPage={(destination) => {
+          if (destination === 'home') changeMode(false);
+          else go(destination);
+        }}
         light={light}
         setLight={setLight}
         token={token}
@@ -263,22 +280,26 @@ export default function App() {
         )
       ) : (
         // Main view renders the Exploratory Game World canvas
-        <div className="game-screen-wrapper">
+        <div className={readingMode ? 'reader-screen-wrapper' : 'game-screen-wrapper'}>
+          <div className="view-mode-switch" role="group" aria-label="Website view">
+            <button type="button" aria-pressed={!readingMode} onClick={() => changeMode(false)}>Explore village</button>
+            <button type="button" aria-pressed={readingMode} onClick={() => changeMode(true)}>Read blog</button>
+          </div>
           {page === "loading" && (
             <div style={{ minHeight: "80vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Loader />
             </div>
           )}
           
-          <GameWorld
+          {!readingMode && <GameWorld
             activeModal={page !== "home" && page !== "loading" ? page : null}
             onTriggerBuilding={handleTriggerBuilding}
             onTriggerNPC={handleTriggerNPC}
             light={light}
-          />
+          />}
 
           {/* Render Modal Overlays on top of the running Game Canvas */}
-          {page === "blog" && (
+          {(page === "blog" || (readingMode && page === 'home')) && (
             <LibraryModal
               key={scholarPostRef.current ? `scholar-${scholarPostRef.current.id}` : "library"}
               posts={posts}
@@ -342,5 +363,6 @@ export default function App() {
         </div>
       )}
     </div>
+    </ReadingModeContext.Provider>
   );
 }

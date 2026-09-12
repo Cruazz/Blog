@@ -52,3 +52,10 @@ HTML is sanitized before rendering, including removal of embedded styles and for
 
 Checks: `npm run build`, `npm run lint`, and `node --test server/tests/security.test.js`.
 The security check uses a temporary local HTTP server and does not access the database.
+
+## Reading mode
+
+Use **Read blog** below the navigation to read without the game canvas. Search,
+categories, article URLs, and browser Back work in both views. The browser saves
+the selected view; **Explore village** returns to the map. No extra dependency is
+needed for reading mode.
