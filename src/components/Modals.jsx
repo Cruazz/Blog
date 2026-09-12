@@ -14,6 +14,13 @@ function formatDate(iso) {
 }
 
 const Icons = {
+  LinkedIn: () => (
+    <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M7 10v7M11 17v-7M11 13a3 3 0 0 1 6 0v4" />
+      <path d="M7 7h.01" />
+    </svg>
+  ),
   Github: () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.28 1.15-.28 2.35 0 3.5-.73 1.02-1.08 2.25-1 3.5 0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" /><path d="M9 18c-4.51 2-5-2-7-2" /></svg>
   ),
@@ -690,6 +697,11 @@ export function PostOfficeModal({ onClose }) {
             <span className="avail-text">Available for new projects</span>
           </div>
           <div className="contact-channels">
+            <a href="https://www.linkedin.com/in/hezekiah-mitchell-tumanggor-334a4b379/" className="contact-tile" target="_blank" rel="noopener noreferrer">
+              <div className="contact-icon-box"><Icons.LinkedIn /></div>
+              <div className="contact-tile-text"><span className="contact-label">LinkedIn</span><span className="contact-value">Hezekiah Mitchell Tumanggor</span></div>
+              <div className="contact-arrow"><Icons.Arrow /></div>
+            </a>
             <a href="https://github.com/cruazz" className="contact-tile" target="_blank" rel="noreferrer">
               <div className="contact-icon-box"><Icons.Github /></div>
               <div className="contact-tile-text"><span className="contact-label">GitHub</span><span className="contact-value">cruazz</span></div>
