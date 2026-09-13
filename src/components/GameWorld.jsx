@@ -216,6 +216,7 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
   const catBubbleRef = useRef(null); // { text }
 
   const [interactPrompt, setInteractPrompt] = useState(null); // { type: "building"|"npc", ...data }
+  const interactPromptRef = useRef(null);
   const [viewport, setViewport] = useState({ w: 800, h: 600 });
   const viewportRef = useRef(viewport);
   useEffect(() => { viewportRef.current = viewport; }, [viewport]);
@@ -271,9 +272,10 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
     };
   }, [interactPrompt, activeModal, onTriggerBuilding, onTriggerNPC]);
 
+  useEffect(() => { keysRef.current = {}; }, [activeModal]);
+
   useEffect(() => {
     let animId;
-    keysRef.current = {};
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -388,7 +390,11 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
           nearest = { type: "cat", ...CAT_CONFIG, x: cat.x, y: cat.y };
         }
       }
-      setInteractPrompt(nearest);
+      const previous = interactPromptRef.current;
+      interactPromptRef.current = nearest;
+      if (previous?.type !== nearest?.type || previous?.id !== nearest?.id) {
+        setInteractPrompt(nearest);
+      }
     };
 
     const drawLightCircle = (lctx, cx, cy, r) => {
@@ -1280,6 +1286,7 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
       for (const e of entities) e.draw();
 
       // ── E Prompt bubble ──────────────────────────────────────────────────
+      const interactPrompt = interactPromptRef.current;
       if (interactPrompt && !activeModal) {
         let bubbleX, bubbleY;
         if (interactPrompt.type === "building") {
@@ -1356,7 +1363,7 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
     };
     animId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animId);
-  }, [activeModal, light, interactPrompt]);
+  }, [activeModal, light]);
 
   const handleTouchStart = (dir) => { keysRef.current[dir] = true; };
   const handleTouchEnd   = (dir) => { keysRef.current[dir] = false; };
