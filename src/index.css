@@ -3214,6 +3214,15 @@ img {
   font-size: 13px;
 }
 
+.scholar-loading {
+  flex: 1;
+  padding: 6px 0;
+  color: #ebdcb9;
+  font-family: var(--font-game-mono);
+  font-size: 16px;
+}
+.light .scholar-loading { color: #382510; }
+
 /* ── Mobile tweaks for new components ─────────────────────────────────── */
 @media (max-width: 768px) {
   .book-container { flex-direction: column; }
@@ -3805,9 +3814,6 @@ img {
 /* Reading tools stay within the article's own scrolling surface. */
 .reading-mode { overflow-x: clip; }
 .article-tools {
-  position: sticky;
-  top: 0;
-  z-index: 5;
   margin: 16px 0 24px;
   padding: 10px 12px;
   border: 1px solid #8d6428;
@@ -3816,12 +3822,22 @@ img {
   background: #f5ead0;
   font: 14px/1.5 Inter, sans-serif;
 }
+.article-tools:empty { display: none; }
+.game-modal-header:has(.article-progress-header),
+.view-mode-switch:has(.article-progress-header) { flex-wrap: wrap; }
+.article-progress-header {
+  flex: 0 0 100%;
+  min-width: 0;
+  color: #ebdcb9;
+  font: 12px/1.4 Inter, sans-serif;
+}
+.light .article-progress-header { color: #382510; }
 .article-progress-row { display: flex; justify-content: space-between; gap: 12px; }
-.article-tools progress { display: block; width: 100%; height: 6px; margin-top: 6px; accent-color: #8d6428; }
+.article-progress-header progress { display: block; width: 100%; height: 4px; margin-top: 4px; accent-color: #8d6428; }
 .article-toc summary { cursor: pointer; padding-top: 10px; min-height: 44px; }
 .article-toc nav { display: flex; flex-direction: column; max-height: 30vh; overflow-y: auto; overscroll-behavior: contain; }
 .article-toc a { display: block; padding: 10px 8px; min-height: 44px; color: inherit; text-decoration: none; overflow-wrap: anywhere; }
 .article-toc a:hover, .article-toc a[aria-current="location"] { text-decoration: underline; background: rgba(141, 100, 40, .15); }
 .article-toc .toc-subsection { padding-left: 24px; }
-.reader-section .article-tools { top: calc(var(--navbar-height) + 56px); background: #161c2d; color: #ebdcb9; }
+.reader-section .article-tools { background: #161c2d; color: #ebdcb9; }
 .light .reader-section .article-tools { background: #f6eedb; color: #382510; }

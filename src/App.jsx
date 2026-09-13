@@ -348,6 +348,9 @@ export default function App() {
           {page === "scholar" && (
             <ScholarModal
               posts={posts}
+              loading={loading}
+              error={postsError}
+              onRetry={fetchPosts}
               onClose={() => go("home")}
               onOpenPost={(post) => {
                 scholarPostRef.current = null;

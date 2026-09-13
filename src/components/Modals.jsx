@@ -996,7 +996,7 @@ export function ObservatoryModal({ onClose }) {
 }
 
 // ── SCHOLAR DIALOGUE MODAL ───────────────────────────────────────────────────
-export function ScholarModal({ posts, onClose, onOpenPost }) {
+export function ScholarModal({ posts, loading, error, onRetry, onClose, onOpenPost }) {
   const [step, setStep] = useState(0);
   const [recommendationIndex] = useState(() => Math.random());
   const recommended = posts?.length ? posts[Math.floor(recommendationIndex * posts.length)] : null;
@@ -1027,19 +1027,19 @@ export function ScholarModal({ posts, onClose, onOpenPost }) {
                   <button className="scholar-btn" onClick={() => setStep(s => s + 1)}>
                     Next ▶
                   </button>
-                ) : (
-                  recommended ? (
+                ) : recommended ? (
                     <button
                       className="scholar-btn scholar-btn-recommend"
                       onClick={() => onOpenPost(recommended)}
                     >
                       📜 Read: &ldquo;{recommended.title.slice(0, 40)}{recommended.title.length > 40 ? "…" : ""}&rdquo;
                     </button>
-                  ) : (
-                    <button className="scholar-btn" onClick={onClose}>
-                      Farewell
-                    </button>
-                  )
+                ) : loading ? (
+                  <span className="scholar-loading" role="status">Finding a scroll...</span>
+                ) : error ? (
+                  <button className="scholar-btn scholar-btn-recommend" onClick={onRetry}>Try the Library again</button>
+                ) : (
+                  <span className="scholar-loading">No published scrolls yet.</span>
                 )}
                 <button className="scholar-btn scholar-btn-skip" onClick={onClose}>
                   Farewell

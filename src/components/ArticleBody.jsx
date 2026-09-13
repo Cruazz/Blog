@@ -1,5 +1,6 @@
 import { useCallback, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
 import DOMPurify from 'dompurify';
+import { createPortal } from 'react-dom';
 import { ReadingModeContext } from '../ReadingModeContext.js';
 
 export default function ArticleBody({ html }) {
@@ -7,6 +8,12 @@ export default function ArticleBody({ html }) {
   const prefix = useId();
   const bodyRef = useRef(null);
   const toolsRef = useRef(null);
+  const [progressTarget, setProgressTarget] = useState(null);
+  const attachTools = useCallback(node => {
+    toolsRef.current = node;
+    setProgressTarget(node ? (readingMode ? document.querySelector('.view-mode-switch') :
+      node.closest('.game-modal-content').querySelector('.game-modal-header')) : null);
+  }, [readingMode]);
   const [position, setPosition] = useState({ percent: 0, section: '' });
   const article = useMemo(() => {
     const content = document.createElement('template');
@@ -27,7 +34,7 @@ export default function ArticleBody({ html }) {
     const scroller = readingMode ? null : bodyRef.current.closest('.game-modal-body');
     const top = scroller ? scroller.getBoundingClientRect().top :
       document.querySelector('.view-mode-switch').getBoundingClientRect().bottom;
-    return { scroller, top: top + toolsRef.current.offsetHeight + 12,
+    return { scroller, top: top + 12,
       bottom: scroller ? scroller.getBoundingClientRect().bottom : window.innerHeight };
   }, [readingMode]);
 
@@ -51,6 +58,7 @@ export default function ArticleBody({ html }) {
     const observer = new ResizeObserver(schedule);
     observer.observe(body);
     observer.observe(toolsRef.current);
+    if (progressTarget) observer.observe(progressTarget);
     scroller.addEventListener('scroll', schedule, { passive: true });
     window.addEventListener('resize', schedule);
     schedule();
@@ -59,7 +67,7 @@ export default function ArticleBody({ html }) {
       scroller.removeEventListener('scroll', schedule);
       window.removeEventListener('resize', schedule);
     };
-  }, [article, readingMode, scrollBounds]);
+  }, [article, readingMode, scrollBounds, progressTarget]);
 
   function jump(event, id) {
     event.preventDefault();
@@ -72,11 +80,13 @@ export default function ArticleBody({ html }) {
   }
 
   return <>
-    <div className="article-tools" ref={toolsRef}>
+    {progressTarget && createPortal(<div className="article-progress-header">
       <div className="article-progress-row">
         <span>Reading progress</span><span>{position.percent}%</span>
       </div>
       <progress aria-label="Reading progress" max="100" value={position.percent} />
+    </div>, progressTarget)}
+    <div className="article-tools" ref={attachTools}>
       {article.sections.length > 1 && <details className="article-toc">
         <summary>Contents · {article.sections.length} sections</summary>
         <nav aria-label="Table of contents">
