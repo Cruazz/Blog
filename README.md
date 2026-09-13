@@ -63,3 +63,13 @@ needed for reading mode.
 Articles include a scroll progress bar and a collapsible table of contents when
 they contain at least two H2/H3 headings. These work in both reading mode and the
 village modal, including keyboard navigation and reduced-motion preferences.
+
+## Village friends
+
+- Waddles waits south of the starting area. Press E to have the duck follow for
+  45 seconds; interact again to ask it to wait. It follows the player's trail.
+- A suspicious rock east of Waddles reveals more dialogue with each interaction.
+- Boo appears near the observatory only in night mode.
+
+All three also support the mobile E button. Run `node --test tests/village-friends.test.js`
+for the duck movement check. Browser checks are in `tests/friends-check.cjs`.

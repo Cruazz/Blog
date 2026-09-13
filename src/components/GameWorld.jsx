@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { FRIENDS, ROCK_LINES, GHOST_LINES, followDuck, drawFriend } from './villageFriends.js';
 
 const TILE_SIZE = 32;
 const MAP_COLS = 32;
@@ -188,6 +189,31 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
   const canvasRef = useRef(null);
 
   const keysRef = useRef({});
+  const duckRef = useRef({ ...FRIENDS[0], followUntil: 0, trail: [] });
+  const friendLinesRef = useRef({ rock: 0, ghost: 0 });
+  const [friendSpeech, setFriendSpeech] = useState(null);
+  useEffect(() => {
+    if (!friendSpeech) return;
+    const timer = setTimeout(() => setFriendSpeech(null), 6500);
+    return () => clearTimeout(timer);
+  }, [friendSpeech]);
+  const talkToFriend = useCallback(id => {
+    if (id === 'ghost' && light) return;
+    const friend = FRIENDS.find(item => item.id === id);
+    let text;
+    if (id === 'duck') {
+      const duck = duckRef.current;
+      const following = duck.followUntil > Date.now();
+      duck.followUntil = following ? 0 : Date.now() + 45000;
+      duck.trail = [];
+      text = following ? 'Quack. I will wait here. Try not to miss me.' : 'You are now responsible for this duck. I will follow you for a little while.';
+    } else {
+      const lines = id === 'rock' ? ROCK_LINES : GHOST_LINES;
+      const index = friendLinesRef.current[id]++;
+      text = lines[id === 'rock' ? Math.min(index, lines.length - 1) : index % lines.length];
+    }
+    setFriendSpeech({ id, name: friend.name, text });
+  }, [light]);
 
   const playerRef = useRef({
     x: 6.5 * TILE_SIZE,
@@ -257,10 +283,11 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
       if (activeModal || /INPUT|TEXTAREA|SELECT|BUTTON/.test(e.target.tagName)) return;
       const k = e.key.toLowerCase();
       keysRef.current[k] = true;
-      if (k === "e" && interactPrompt && !activeModal) {
+      if (k === "e" && !e.repeat && interactPrompt && !activeModal) {
         if (interactPrompt.type === "building") onTriggerBuilding(interactPrompt.id);
         else if (interactPrompt.type === "npc") onTriggerNPC(interactPrompt.id);
         else if (interactPrompt.type === "cat") triggerCatQuote();
+        else if (interactPrompt.type === 'friend') talkToFriend(interactPrompt.id);
       }
     };
     const handleKeyUp = (e) => { keysRef.current[e.key.toLowerCase()] = false; };
@@ -270,7 +297,7 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [interactPrompt, activeModal, onTriggerBuilding, onTriggerNPC]);
+  }, [interactPrompt, activeModal, onTriggerBuilding, onTriggerNPC, talkToFriend]);
 
   useEffect(() => { keysRef.current = {}; }, [activeModal]);
 
@@ -372,7 +399,9 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
         cat.isMoving = false;
       }
 
-      // Proximity check — buildings first, then NPCs, then cat
+      followDuck(duckRef.current, player, isColliding, now);
+
+      // Proximity check — buildings first, then NPCs, then nearby friends.
       let nearest = null;
       for (const b of BUILDINGS) {
         const dist = Math.hypot(player.x - b.doorX, player.y - b.doorY);
@@ -382,6 +411,14 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
         for (const npc of NPCS) {
           const dist = Math.hypot(player.x - npc.x, player.y - npc.y);
           if (dist < npc.interactRadius) { nearest = { type: "npc", ...npc }; break; }
+        }
+      }
+      if (!nearest) {
+        for (const friend of [duckRef.current, ...FRIENDS.slice(1)]) {
+          if (friend.id === 'ghost' && light) continue;
+          if (Math.hypot(player.x - friend.x, player.y - friend.y) < 32) {
+            nearest = { ...friend, type: 'friend' }; break;
+          }
         }
       }
       if (!nearest) {
@@ -1255,6 +1292,13 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
       }
 
       // Player
+      for (const friend of [duckRef.current, ...FRIENDS.slice(1)]) {
+        if (friend.id === 'ghost' && light) continue;
+        entities.push({ y: friend.y + 4, draw: () => drawFriend(ctx, friend,
+          friend.id === 'duck' && friend.followUntil > Date.now(), Date.now()) });
+      }
+
+      // Player
       entities.push({ type:"player", y: playerRef.current.y, draw: () => {
         const p = playerRef.current;
         ctx.fillStyle="rgba(0,0,0,0.2)";
@@ -1372,6 +1416,7 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
       if (interactPrompt.type === "building") onTriggerBuilding(interactPrompt.id);
       else if (interactPrompt.type === "npc") onTriggerNPC(interactPrompt.id);
       else if (interactPrompt.type === "cat") triggerCatQuote();
+      else if (interactPrompt.type === 'friend') talkToFriend(interactPrompt.id);
     }
   };
 
@@ -1379,6 +1424,12 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
   return (
     <div className="game-world-container" ref={containerRef}>
       <canvas ref={canvasRef} className="game-canvas" />
+      {!activeModal && friendSpeech && !(light && friendSpeech.id === 'ghost') && (
+        <div className="friend-speech" role="status">
+          <strong>{friendSpeech.name}</strong>
+          <p>{friendSpeech.text}</p>
+        </div>
+      )}
 
       <div className="game-hud game-hud-left">
         <span className="game-hud-icon">🌿</span> CRUAZ&apos;S VILLAGE
