@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FRIENDS, ROCK_LINES, GHOST_LINES, followDuck, drawFriend } from './villageFriends.js';
+import { FRIENDS, ROCK_LINES, GHOST_LINES, followDuck, wanderFriend, drawFriend, drawName, drawSpeech } from './villageFriends.js';
 
 const TILE_SIZE = 32;
 const MAP_COLS = 32;
@@ -190,8 +190,11 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
 
   const keysRef = useRef({});
   const duckRef = useRef({ ...FRIENDS[0], followUntil: 0, trail: [] });
+  const ghostRef = useRef({ ...FRIENDS[2] });
   const friendLinesRef = useRef({ rock: 0, ghost: 0 });
   const [friendSpeech, setFriendSpeech] = useState(null);
+  const friendSpeechRef = useRef(null);
+  useEffect(() => { friendSpeechRef.current = friendSpeech; }, [friendSpeech]);
   useEffect(() => {
     if (!friendSpeech) return;
     const timer = setTimeout(() => setFriendSpeech(null), 6500);
@@ -206,6 +209,8 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
       const following = duck.followUntil > Date.now();
       duck.followUntil = following ? 0 : Date.now() + 45000;
       duck.trail = [];
+      duck.target = null;
+      duck.restUntil = Date.now() + 8000;
       text = following ? 'Quack. I will wait here. Try not to miss me.' : 'You are now responsible for this duck. I will follow you for a little while.';
     } else {
       const lines = id === 'rock' ? ROCK_LINES : GHOST_LINES;
@@ -400,6 +405,8 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
       }
 
       followDuck(duckRef.current, player, isColliding, now);
+      if (now >= duckRef.current.followUntil) wanderFriend(duckRef.current, FRIENDS[0], isColliding, now);
+      if (!light) wanderFriend(ghostRef.current, FRIENDS[2], isColliding, now);
 
       // Proximity check — buildings first, then NPCs, then nearby friends.
       let nearest = null;
@@ -414,7 +421,7 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
         }
       }
       if (!nearest) {
-        for (const friend of [duckRef.current, ...FRIENDS.slice(1)]) {
+        for (const friend of [duckRef.current, FRIENDS[1], ghostRef.current]) {
           if (friend.id === 'ghost' && light) continue;
           if (Math.hypot(player.x - friend.x, player.y - friend.y) < 32) {
             nearest = { ...friend, type: 'friend' }; break;
@@ -1209,93 +1216,16 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
           ctx.fillRect(cat.x-4, cat.y+2+catBob+(legOffset>0?-1:0), 3, 4+legOffset);
           ctx.fillRect(cat.x+1, cat.y+2+catBob+(-legOffset>0?-1:0), 3, 4-legOffset);
 
-          // Name label
-          ctx.fillStyle = "rgba(12,16,28,0.82)";
-          const clw = 64;
-          ctx.fillRect(cat.x - clw/2, cat.y - 28 + catBob, clw, 12);
-          ctx.strokeStyle = "#8d6428";
-          ctx.lineWidth = 1;
-          ctx.strokeRect(cat.x - clw/2, cat.y - 28 + catBob, clw, 12);
-          ctx.fillStyle = "#f5a060";
-          ctx.font = "bold 6px 'Press Start 2P', monospace";
-          ctx.textAlign = "center"; ctx.textBaseline = "middle";
-          ctx.fillText(CAT_CONFIG.name, cat.x, cat.y - 22 + catBob);
-
-          // Speech bubble if active
-          const catBubble = catBubbleRef.current;
-          if (catBubble && catBubble.text) {
-            const bubblePadX = 10, bubblePadY = 8;
-            ctx.imageSmoothingEnabled = true;
-            ctx.font = "600 12px 'Segoe UI', Arial, sans-serif";
-            const maxTextW = 180;
-            const lines = [];
-            const words = catBubble.text.split(" ");
-            let line = "";
-            for (const w of words) {
-              const test = line ? line + " " + w : w;
-              if (ctx.measureText(test).width > maxTextW) {
-                lines.push(line);
-                line = w;
-              } else {
-                line = test;
-              }
-            }
-            if (line) lines.push(line);
-            const lineH = 15;
-            const bw = maxTextW + bubblePadX * 2, bh = lines.length * lineH + bubblePadY * 2;
-            const bx = cat.x - bw / 2;
-            const by = cat.y - 38 + catBob - bh;
-            // Bubble bg
-            ctx.fillStyle = "#fff8e8";
-            ctx.beginPath();
-            const r = 6;
-            ctx.moveTo(bx + r, by);
-            ctx.lineTo(bx + bw - r, by);
-            ctx.arcTo(bx + bw, by, bx + bw, by + r, r);
-            ctx.lineTo(bx + bw, by + bh - r);
-            ctx.arcTo(bx + bw, by + bh, bx + bw - r, by + bh, r);
-            ctx.lineTo(bx + r, by + bh);
-            ctx.arcTo(bx, by + bh, bx, by + bh - r, r);
-            ctx.lineTo(bx, by + r);
-            ctx.arcTo(bx, by, bx + r, by, r);
-            ctx.closePath();
-            ctx.fill();
-            ctx.strokeStyle = "#5a3d16";
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            // Tail of bubble
-            ctx.fillStyle = "#fff8e8";
-            ctx.beginPath();
-            ctx.moveTo(cat.x - 5, by + bh - 1);
-            ctx.lineTo(cat.x, by + bh + 8);
-            ctx.lineTo(cat.x + 5, by + bh - 1);
-            ctx.closePath(); ctx.fill();
-            ctx.strokeStyle = "#5a3d16";
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(cat.x - 5, by + bh);
-            ctx.lineTo(cat.x, by + bh + 8);
-            ctx.lineTo(cat.x + 5, by + bh);
-            ctx.stroke();
-            // Cover tail overlap inside bubble
-            ctx.fillStyle = "#fff8e8";
-            ctx.fillRect(cat.x - 6, by + bh - 3, 12, 4);
-            // Text
-            ctx.fillStyle = "#2b1f11";
-            ctx.textAlign = "left"; ctx.textBaseline = "top";
-            lines.forEach((l, i) => {
-              ctx.fillText(l, bx + bubblePadX, by + bubblePadY + i * lineH);
-            });
-            ctx.imageSmoothingEnabled = false;
-          }
+          drawName(ctx, CAT_CONFIG.name, cat.x, cat.y - 28 + catBob);
+          drawSpeech(ctx, catBubbleRef.current?.text, cat.x, cat.y - 38 + catBob);
         }});
       }
 
       // Player
-      for (const friend of [duckRef.current, ...FRIENDS.slice(1)]) {
+      for (const friend of [duckRef.current, FRIENDS[1], ghostRef.current]) {
         if (friend.id === 'ghost' && light) continue;
         entities.push({ y: friend.y + 4, draw: () => drawFriend(ctx, friend,
-          friend.id === 'duck' && friend.followUntil > Date.now(), Date.now()) });
+          friend.id === 'duck' && (friend.moving || friend.followUntil > Date.now()), Date.now()) });
       }
 
       // Player
@@ -1328,6 +1258,11 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
 
       entities.sort((a, b) => a.y - b.y);
       for (const e of entities) e.draw();
+      const speech = friendSpeechRef.current;
+      if (!activeModal && speech && !(light && speech.id === 'ghost')) {
+        const friend = speech.id === 'duck' ? duckRef.current : speech.id === 'ghost' ? ghostRef.current : FRIENDS[1];
+        drawSpeech(ctx, speech.text, friend.x, friend.y - 48);
+      }
 
       // ── E Prompt bubble ──────────────────────────────────────────────────
       const interactPrompt = interactPromptRef.current;
@@ -1425,7 +1360,7 @@ export default function GameWorld({ activeModal, onTriggerBuilding, onTriggerNPC
     <div className="game-world-container" ref={containerRef}>
       <canvas ref={canvasRef} className="game-canvas" />
       {!activeModal && friendSpeech && !(light && friendSpeech.id === 'ghost') && (
-        <div className="friend-speech" role="status">
+        <div className="friend-speech sr-only" role="status">
           <strong>{friendSpeech.name}</strong>
           <p>{friendSpeech.text}</p>
         </div>

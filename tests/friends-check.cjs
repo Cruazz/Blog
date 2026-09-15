@@ -23,10 +23,10 @@ require('node:fs').mkdirSync('scratch', { recursive: true });
         await route.fulfill({ response, body });
       });
       await page.route('**/api/**', route => route.fulfill({ json: [] }));
-      await page.goto('http://127.0.0.1:5173/');
+      await page.goto('http://127.0.0.1:5173/', { waitUntil: 'domcontentloaded' });
       await page.locator('.dpad-action').waitFor();
       await page.keyboard.press('e');
-      await page.locator('.friend-speech').waitFor();
+      await page.locator('.friend-speech').waitFor({ state: 'attached' });
       if (id === 'duck') {
         assert.match(await page.locator('.friend-speech').innerText(), /responsible for this duck/);
         await page.locator('.dpad-action').click();
